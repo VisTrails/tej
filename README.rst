@@ -93,7 +93,7 @@ Kill a running job::
 
 Cleanup a finished job::
 
-    $ tej cleanup user@server.hostna.me --id example_job
+    $ tej delete user@server.hostna.me --id example_job
     Deleted job 'example_job'
 
 Of course none of this is implemented yet, so it's all subject to change. Feel

@@ -55,5 +55,11 @@ class RemoteQueue(object):
     def status(self, job_id):
         pass
 
+    def download(self, job_id, files):
+        pass
+
     def kill(self, job_id):
+        pass
+
+    def delete(self, job_id):
         pass

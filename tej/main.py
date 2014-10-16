@@ -27,12 +27,16 @@ def _status(args):
     RemoteQueue(args.destination, args.queue).status(args.id)
 
 
+def _download(args):
+    RemoteQueue(args.destination, args.queue).kill(args.files)
+
+
 def _kill(args):
     RemoteQueue(args.destination, args.queue).kill(args.id)
 
 
-def _download(args):
-    logging.critical("Not implemented")
+def _delete(args):
+    RemoteQueue(args.destination, args.queue).delete(args.id)
 
 
 def setup_logging(verbosity):
@@ -123,6 +127,17 @@ def main():
                                help="Identifier of the running job")
     parser_status.set_defaults(func=_status)
 
+    # Download action
+    parser_download = subparsers.add_parser(
+            'download', parents=[options, options_dest],
+            help="Downloads files from finished job")
+    parser_download.add_argument('--id', action='store',
+                                 help="Identifier of the job")
+    parser_download.add_argument('file', action='store', dest='files',
+                                 nargs=argparse.ONE_OR_MORE,
+                                 help="Files to download")
+    parser_download.set_defaults(func=_download)
+
     # Kill action
     parser_kill = subparsers.add_parser(
             'status', parents=[options, options_dest],
@@ -131,14 +146,13 @@ def main():
                                help="Identifier of the running job")
     parser_kill.set_defaults(func=_kill)
 
-    # Download action
-    parser_download = subparsers.add_parser(
-            'download', parents=[options, options_dest],
-            help="Downloads files from finished job")
-    parser_download.add_argument('--id', action='store',
-                                 help="Identifier of the job")
-    # TODO
-    parser_download.set_defaults(func=_download)
+    # Delete action
+    parser_delete = subparsers.add_parser(
+            'delete', parents=[options, options_dest],
+            help="Deletes a finished job")
+    parser_delete.add_argument('--id', action='store',
+                               help="Identifier of the finished job")
+    parser_delete.set_defaults(func=_delete)
 
     args = parser.parse_args()
     setup_logging(args.verbosity)
