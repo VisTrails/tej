@@ -9,12 +9,13 @@ os.chdir(os.path.abspath(os.path.dirname(__file__)))
 
 with open('README.rst') as fp:
     description = fp.read()
-req = ['paramiko', 'scp']
+req = ['paramiko', 'rpaths', 'scp']
 if sys.version_info < (2, 7):
     req.append('argparse')
 setup(name='tej-python',
       version='0.1',
       packages=['tej'],
+      package_data={'tej': ['remotes/*']},
       entry_points={
           'console_scripts': [
               'tej = tej.main:main']},

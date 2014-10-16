@@ -15,7 +15,7 @@ from tej.submission import RemoteQueue
 
 
 def _setup(args):
-    RemoteQueue(args.destination, args.queue).setup(args.make_link)
+    RemoteQueue(args.destination, args.queue).setup(args.make_link, args.force)
 
 
 def _submit(args):
@@ -49,9 +49,8 @@ def setup_logging(verbosity):
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
 
-    logger = logging.getLogger()
-    logger.setLevel(level)
-    logger.addHandler(handler)
+    logging.getLogger().addHandler(handler)
+    logging.getLogger('tej').setLevel(level)
 
 
 DEFAULT_TEJ_DIR = '~/.tej'
@@ -104,6 +103,7 @@ def main():
                               dest='make_link')
     parser_setup.add_argument('--make-default-link', action='append_const',
                               dest='make_link', const=DEFAULT_TEJ_DIR)
+    parser_setup.add_argument('--force', action='store_true')
     parser_setup.set_defaults(func=_setup)
 
     # Submit action
@@ -133,7 +133,7 @@ def main():
             help="Downloads files from finished job")
     parser_download.add_argument('--id', action='store',
                                  help="Identifier of the job")
-    parser_download.add_argument('file', action='store', dest='files',
+    parser_download.add_argument('file', action='store',
                                  nargs=argparse.ONE_OR_MORE,
                                  help="Files to download")
     parser_download.set_defaults(func=_download)
