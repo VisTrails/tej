@@ -5,30 +5,82 @@ from __future__ import unicode_literals
 
 import argparse
 import codecs
+import getpass
 import locale
 import logging
+import paramiko
+import re
 import sys
 
 from . import __version__ as tej_version
 
 
-def _setup(args):
+_re_ssh = re.compile(r'^'
+                     r'(?:ssh://)?'              # 'ssh://' prefix
+                     r'(?:([a-zA-Z0-9_.-]+)@)?'  # 'user@'
+                     r'([a-zA-Z0-9_.-]+)'        # 'host'
+                     r'(?::([0-9]+))?'           # ':port'
+                     r'$')
+
+def parse_ssh_destination(destination):
+    match = _re_ssh.match(destination)
+    if not match:
+        raise ValueError("Invalid destination: %s" % destination)
+    user, host, port = match.groups()
+    info = {}
+    if user:
+        info['username'] = user
+    if port:
+        try:
+            info['port'] = int(port)
+        except ValueError:
+            raise ValueError("Invalid port number: %s" % port)
+    info['hostname'] = host
+
+    return info
+
+
+def _connect(func):
+    def wrapper(args):
+        try:
+            info = parse_ssh_destination(args.destination)
+        except ValueError, e:
+            logging.critical(e)
+            sys.exit(1)
+
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.RejectPolicy())
+        ssh.connect(**info)
+
+        try:
+            return func(args, ssh)
+        finally:
+            ssh.close()
+    return wrapper
+
+
+@_connect
+def _setup(args, ssh):
     pass
 
 
-def _submit(args):
+@_connect
+def _submit(args, ssh):
     pass
 
 
-def _status(args):
+@_connect
+def _status(args, ssh):
     pass
 
 
-def _kill(args):
+@_connect
+def _kill(args, ssh):
     pass
 
 
-def _download(args):
+@_connect
+def _download(args, ssh):
     pass
 
 
