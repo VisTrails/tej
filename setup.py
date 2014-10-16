@@ -7,6 +7,16 @@ import sys
 os.chdir(os.path.abspath(os.path.dirname(__file__)))
 
 
+def list_files(d, root):
+    files = []
+    for e in os.listdir(os.path.join(root, d)):
+        if os.path.isdir(os.path.join(root, d, e)):
+            files.extend(list_files('%s/%s' % (d, e), root))
+        elif not e.endswith('.pyc'):
+            files.append('%s/%s' % (d, e))
+    return files
+
+
 with open('README.rst') as fp:
     description = fp.read()
 req = ['paramiko', 'rpaths', 'scp']
@@ -15,7 +25,7 @@ if sys.version_info < (2, 7):
 setup(name='tej-python',
       version='0.1',
       packages=['tej'],
-      package_data={'tej': ['remotes/*']},
+      package_data={'tej': list_files('remotes/default', 'tej')},
       entry_points={
           'console_scripts': [
               'tej = tej.main:main']},
