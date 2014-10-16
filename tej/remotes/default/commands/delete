@@ -1,0 +1,37 @@
+#!/bin/sh
+
+#
+# This file is part of tej
+# https://github.com/remram44/tej
+#
+# Job deletion script
+# Started on the server to delete a job
+#
+
+(date; pwd; echo "delete $@") >> /tmp/tej.log
+
+cd "$(dirname 0)"
+
+# Inputs
+job_id="$1"
+
+job_root="../jobs/$job_id"
+
+if ! [ -d "$job_root" ]; then
+    echo "No job '$job_id'" >&2
+    exit 0
+fi
+
+# Reads two lines from file
+exec 3<"$job_root/status"
+read -u 3 status
+read -u 3 arg
+exec 3<&-
+
+if [ "$status" = finished ]; then
+    rm -Rf "$job_root"
+    exit 0
+else
+    echo "Job is still running" >&2
+    exit 1
+fi

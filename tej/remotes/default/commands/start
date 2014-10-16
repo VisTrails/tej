@@ -1,0 +1,30 @@
+#!/bin/sh
+
+#
+# This file is part of tej
+# https://github.com/remram44/tej
+#
+# Job starting wrapper
+# Started on the server, detached, by the submit script
+#
+
+(date; pwd; echo "start $@") >> /tmp/tej.log
+
+job_dir="$(pwd)"
+script="$1"
+
+
+# Starts program
+"$script" &
+pid=$!
+
+# Writes status file
+(echo "running"; echo $pid) > ../status
+
+wait $pid
+exitcode=$?
+
+# Updates status file
+(echo "finished"; echo $exitcode) > ../status
+
+exit 0

@@ -1,0 +1,43 @@
+#!/bin/sh
+
+#
+# This file is part of tej
+# https://github.com/remram44/tej
+#
+# Job killing script
+# Started on the server to kill a job
+#
+
+(date; pwd; echo "kill $@") >> /tmp/tej.log
+
+cd "$(dirname 0)"
+
+# Inputs
+job_id="$1"
+
+job_root="../jobs/$job_id"
+
+if ! [ -d "$job_root" ]; then
+    echo "No job '$job_id'" >&2
+    exit 1
+fi
+
+# Reads two lines from file
+exec 3<"$job_root/status"
+read -u 3 status
+read -u 3 arg
+exec 3<&-
+
+if [ "$status" = running ]; then
+    kill -TERM $arg
+    sleep 3
+    if kill -KILL $arg; then
+        echo "Job did not finish in time -- killed" >&2
+    else
+        echo "Job terminated" >&2
+    fi
+    exit 0
+else
+    echo "Job is not running" >&2
+    exit 1
+fi

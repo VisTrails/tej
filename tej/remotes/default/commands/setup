@@ -1,0 +1,18 @@
+#!/bin/sh
+
+#
+# This file is part of tej
+# https://github.com/remram44/tej
+#
+# Post-install script
+# Runs on the server after the runtime has been transferred
+#
+
+(date; pwd; echo "setup $@") >> /tmp/tej.log
+
+cd "$(dirname $0)"
+
+# Empty directories are tricky
+if ! [ -d "../jobs" ]; then
+    mkdir ../jobs
+fi

@@ -1,0 +1,28 @@
+#!/bin/sh
+
+#
+# This file is part of tej
+# https://github.com/remram44/tej
+#
+# Job submission script
+# Runs on the server once the job has been transferred
+#
+
+(date; pwd; echo "submit $@") >> /tmp/tej.log
+
+cd "$(dirname $0)"
+
+# Inputs
+job_id="$1"
+job_dir="$2"
+script="$3"
+
+# Sanity check
+if ! [ -d "$job_dir" ]; then
+    echo "Job directory doesn't exist" >&2
+    exit 1
+fi
+
+# Starts process
+cd "$job_dir"
+nohup ./start "$script" > /dev/null 2>&1 < /dev/null &

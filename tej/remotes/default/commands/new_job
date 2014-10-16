@@ -1,0 +1,29 @@
+#!/bin/sh
+
+#
+# This file is part of tej
+# https://github.com/remram44/tej
+#
+# Job allocation script
+# Runs on the server before a job gets created
+#
+
+cd "$(dirname $0)"
+
+(date; pwd; echo "new_job $@") >> /tmp/tej.log
+
+# Inputs
+job_id="$1"
+
+# Creates directories
+job_root="../jobs/$job_id"
+if ! mkdir "$job_root" 2>/dev/null; then
+    echo "Job already exists!" >&2
+    exit 1
+fi
+job_dir="$job_root/stage
+mkdir "$job_dir"
+
+# Prints out the name of the new directory, where the job is to be copied
+cd "$(pwd)/$job_dir"
+pwd

@@ -1,0 +1,38 @@
+#!/bin/sh
+
+#
+# This file is part of tej
+# https://github.com/remram44/tej
+#
+# Job status script
+# Started on the server to get the status of a job
+#
+
+(date; pwd; echo "status $@") >> /tmp/tej.log
+
+cd "$(dirname $0)"
+
+# Inputs
+job_id="$1"
+
+job_root="../jobs/$job_id"
+
+if ! [ -d "$job_root" ]; then
+    echo "No job '$job_id'" >&2
+    exit 3
+fi
+
+# Reads two lines from file
+exec 3<"$job_root/status"
+read -u 3 status
+read -u 3 arg
+exec 3<&-
+
+if [ "$status" = running ]; then
+    echo "Job is still running" >&2
+    exit 2
+else
+    echo "Job finished with code " >&2
+    echo $arg
+    exit 0
+fi
