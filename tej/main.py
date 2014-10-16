@@ -5,83 +5,34 @@ from __future__ import unicode_literals
 
 import argparse
 import codecs
-import getpass
 import locale
 import logging
-import paramiko
-import re
 import sys
 
-from . import __version__ as tej_version
+from tej import __version__ as tej_version
+
+from tej.submission import RemoteQueue
 
 
-_re_ssh = re.compile(r'^'
-                     r'(?:ssh://)?'              # 'ssh://' prefix
-                     r'(?:([a-zA-Z0-9_.-]+)@)?'  # 'user@'
-                     r'([a-zA-Z0-9_.-]+)'        # 'host'
-                     r'(?::([0-9]+))?'           # ':port'
-                     r'$')
-
-def parse_ssh_destination(destination):
-    match = _re_ssh.match(destination)
-    if not match:
-        raise ValueError("Invalid destination: %s" % destination)
-    user, host, port = match.groups()
-    info = {}
-    if user:
-        info['username'] = user
-    if port:
-        try:
-            info['port'] = int(port)
-        except ValueError:
-            raise ValueError("Invalid port number: %s" % port)
-    info['hostname'] = host
-
-    return info
+def _setup(args):
+    RemoteQueue(args.destination, args.queue).setup(args.make_link)
 
 
-def _connect(func):
-    def wrapper(args):
-        try:
-            info = parse_ssh_destination(args.destination)
-        except ValueError, e:
-            logging.critical(e)
-            sys.exit(1)
-
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.RejectPolicy())
-        ssh.connect(**info)
-
-        try:
-            return func(args, ssh)
-        finally:
-            ssh.close()
-    return wrapper
+def _submit(args):
+    RemoteQueue(args.destination, args.queue).submit(
+            args.id, args.directory, args.script)
 
 
-@_connect
-def _setup(args, ssh):
-    pass
+def _status(args):
+    RemoteQueue(args.destination, args.queue).status(args.id)
 
 
-@_connect
-def _submit(args, ssh):
-    pass
+def _kill(args):
+    RemoteQueue(args.destination, args.queue).kill(args.id)
 
 
-@_connect
-def _status(args, ssh):
-    pass
-
-
-@_connect
-def _kill(args, ssh):
-    pass
-
-
-@_connect
-def _download(args, ssh):
-    pass
+def _download(args):
+    logging.critical("Not implemented")
 
 
 def setup_logging(verbosity):
@@ -122,7 +73,7 @@ def main():
     # General options
     options = argparse.ArgumentParser(add_help=False)
     options.add_argument('--version', action='version',
-                         version="gitobox version %s" % tej_version)
+                         version="tej version %s" % tej_version)
     options.add_argument('-v', '--verbose', action='count', default=1,
                          dest='verbosity',
                          help="augments verbosity level")
@@ -137,46 +88,57 @@ def main():
     options_dest = argparse.ArgumentParser(add_help=False)
     options_dest.add_argument('destination', action='store',
                               help="Machine to SSH into; [user@]host[:port]")
-
-    # Setup options; shared between 'setup' and 'submit'
-    options_setup = argparse.ArgumentParser(add_help=False)
-    options_setup.add_argument('--queue', action='store',
+    options_dest.add_argument('--queue', action='store',
                                default=DEFAULT_TEJ_DIR,
                                help="Directory for tej's files")
 
     # Setup action
     parser_setup = subparsers.add_parser(
-            'setup', parents=[options, options_setup],
+            'setup', parents=[options, options_dest],
             help="Sets up tej on a remote machine")
     parser_setup.add_argument('--make-link', action='append',
                               dest='make_link')
     parser_setup.add_argument('--make-default-link', action='append_const',
                               dest='make_link', const=DEFAULT_TEJ_DIR)
-    parser_setup.set_defaults(_setup)
+    parser_setup.set_defaults(func=_setup)
 
     # Submit action
     parser_submit = subparsers.add_parser(
-            'submit', parents=[options, options_setup],
+            'submit', parents=[options, options_dest],
             help="Submits a job to a remote machine")
-    parser_submit.set_defaults(_submit)
+    parser_submit.add_argument('--id', action='store',
+                               help="Identifier for the new job")
+    parser_submit.add_argument('--script', action='store',
+                               help="Relative name of the script in the "
+                                    "directory")
+    parser_submit.add_argument('directory', action='store',
+                               help="Job directory to upload")
+    parser_submit.set_defaults(func=_submit)
 
     # Status action
     parser_status = subparsers.add_parser(
-            'status', parents=[options],
+            'status', parents=[options, options_dest],
             help="Gets the status of a job")
-    parser_status.set_defaults(_status)
+    parser_status.add_argument('--id', action='store',
+                               help="Identifier of the running job")
+    parser_status.set_defaults(func=_status)
 
     # Kill action
     parser_kill = subparsers.add_parser(
-            'status', parents=[options],
+            'status', parents=[options, options_dest],
             help="Kills a running job")
-    parser_kill.set_defaults(_kill)
+    parser_kill.add_argument('--id', action='store',
+                               help="Identifier of the running job")
+    parser_kill.set_defaults(func=_kill)
 
     # Download action
     parser_download = subparsers.add_parser(
-            'download', parents=[options],
+            'download', parents=[options, options_dest],
             help="Downloads files from finished job")
-    parser_download.set_defaults(_download)
+    parser_download.add_argument('--id', action='store',
+                                 help="Identifier of the job")
+    # TODO
+    parser_download.set_defaults(func=_download)
 
     args = parser.parse_args()
     setup_logging(args.verbosity)

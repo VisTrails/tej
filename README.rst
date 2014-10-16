@@ -41,8 +41,9 @@ Submit a simple job::
     Job submitted as:
     myjobdir_user_123456
 
-Here myjobdir is assumed to have the default layout, and no metadata is added.
-The directory will be uploaded in its entirety, and ``start.sh`` will be run.
+Here `myjobdir` is assumed to have the default layout, and no metadata is
+added. The directory will be uploaded in its entirety, and ``start.sh`` will be
+run.
 
 The optional JSON file ``tej.json`` can contain metadata, such as maximum run
 time, what to do with the standard/error outputs, when to run the job, and
@@ -52,13 +53,48 @@ Submit a job explicitely::
 
     $ tej submit user@server.hostna.me --queue=/scratch/tejqueue \
         --id example_job \
-        --directory myjobdir \
-        --script bin/jobinit
+        --script bin/jobinit \
+        myjobdir
     Job submitted as:
     example_job
 
 In this form, additional metadata is provided on the command-line; it is used
 to override the default directory structure and metadata.
+
+Get the status of a job::
+
+    $ tej status user@server.hostna.me --id myjobdir_user_123456
+    Job is still running (1:28:57)
+    $ tej status user@server.hostna.me --queue=/scratch/tejqueue \
+        --id example_job
+    Job is finished (1:30:01)
+    $ tej status user@server.hostna.me --id myjobdir_user_567890
+    No job with that identifier
+
+Download the output from a finished job::
+
+    $ tej download user@server.hostna.me --id myjobdir_user_123456 \
+        input.bin \
+        output/log.txt: \
+        results.csv:/tmp/experiment.csv
+
+Note that there is no need for the file to be an output. `input.bin` will be
+downloaded to the current directory; `output/log.txt` will be printed in the
+terminal; and `results.csv` has an explicit destination path.
+
+Kill a running job::
+
+    $ tej kill user@server.hostna.me --id example_job
+    Job 'example_job' has already completed
+    $ tej kill user@server.hostna.me --id myjobdir_user_123456
+    Job 'myjobdir_user_123456' killed
+    $ tej kill user@server.hostna.me --id myjobdir_user_567890
+    No job 'myjobdir_user_567890'
+
+Cleanup a finished job::
+
+    $ tej cleanup user@server.hostna.me --id example_job
+    Deleted job 'example_job'
 
 Of course none of this is implemented yet, so it's all subject to change. Feel
 free to give me your opinion on these or direct me your feature requests.
