@@ -1,7 +1,7 @@
 """Entry point for the tej utility.
 """
 
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import unicode_literals
 
 import argparse
 import codecs
@@ -10,6 +10,26 @@ import logging
 import sys
 
 from . import __version__ as tej_version
+
+
+def _setup(args):
+    pass
+
+
+def _submit(args):
+    pass
+
+
+def _status(args):
+    pass
+
+
+def _kill(args):
+    pass
+
+
+def _download(args):
+    pass
 
 
 def setup_logging(verbosity):
@@ -25,6 +45,9 @@ def setup_logging(verbosity):
     logger = logging.getLogger()
     logger.setLevel(level)
     logger.addHandler(handler)
+
+
+DEFAULT_TEJ_DIR = '~/.tej'
 
 
 def main():
@@ -52,15 +75,62 @@ def main():
                          dest='verbosity',
                          help="augments verbosity level")
 
+    # Root parser
     parser = argparse.ArgumentParser(
             description="Trivial Extensible Job-submission",
             parents=[options])
+    subparsers = parser.add_subparsers(title='commands', metavar='')
+
+    # Destination selection
+    options_dest = argparse.ArgumentParser(add_help=False)
+    options_dest.add_argument('destination', action='store',
+                              help="Machine to SSH into; [user@]host[:port]")
+
+    # Setup options; shared between 'setup' and 'submit'
+    options_setup = argparse.ArgumentParser(add_help=False)
+    options_setup.add_argument('--queue', action='store',
+                               default=DEFAULT_TEJ_DIR,
+                               help="Directory for tej's files")
+
+    # Setup action
+    parser_setup = subparsers.add_parser(
+            'setup', parents=[options, options_setup],
+            help="Sets up tej on a remote machine")
+    parser_setup.add_argument('--make-link', action='append',
+                              dest='make_link')
+    parser_setup.add_argument('--make-default-link', action='append_const',
+                              dest='make_link', const=DEFAULT_TEJ_DIR)
+    parser_setup.set_defaults(_setup)
+
+    # Submit action
+    parser_submit = subparsers.add_parser(
+            'submit', parents=[options, options_setup],
+            help="Submits a job to a remote machine")
+    parser_submit.set_defaults(_submit)
+
+    # Status action
+    parser_status = subparsers.add_parser(
+            'status', parents=[options],
+            help="Gets the status of a job")
+    parser_status.set_defaults(_status)
+
+    # Kill action
+    parser_kill = subparsers.add_parser(
+            'status', parents=[options],
+            help="Kills a running job")
+    parser_kill.set_defaults(_kill)
+
+    # Download action
+    parser_download = subparsers.add_parser(
+            'download', parents=[options],
+            help="Downloads files from finished job")
+    parser_download.set_defaults(_download)
 
     args = parser.parse_args()
     setup_logging(args.verbosity)
 
-    logging.critical("Work in progress!")
-    sys.exit(1)
+    args.func(args)
+    sys.exit(0)
 
 
 if __name__ == '__main__':
