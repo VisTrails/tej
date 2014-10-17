@@ -236,7 +236,7 @@ class RemoteQueue(object):
     def _setup(self):
         """Actually installs the runtime.
         """
-        logger.debug("Installing runtime at %s", self.queue)
+        logger.info("Installing runtime at %s", self.queue)
 
         # Expands ~user in queue
         output = self.check_output('echo %s' % shell_escape(str(self.queue)))
@@ -283,8 +283,9 @@ class RemoteQueue(object):
 
         # Upload to directory
         scp_client = scp.SCPClient(self.ssh.get_transport())
-        for p in Path(directory).listdir():
-            scp_client.put(str(p), str(target), recursive=True)
+        scp_client.put([str(p) for p in Path(directory).listdir()],
+                       str(target),
+                       recursive=True)
         logger.debug("Files uploaded")
 
         # Submit job

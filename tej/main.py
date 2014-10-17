@@ -73,6 +73,8 @@ def main():
         sys.stdout.buffer = o_stdout
         sys.stderr = writer(sys.stderr)
         sys.stderr.buffer = o_stderr
+    else:  # PY3
+        sys.stdin = sys.stdin.buffer
 
     # Parses command-line
 
