@@ -293,8 +293,27 @@ class RemoteQueue(object):
         logger.info("Submitted job %s", job_id)
 
     def status(self, job_id):
-        # TODO : status
-        raise NotImplementedError("status")
+        """Gets the status of a previously-submitted job.
+        """
+        queue = self._get_queue()
+
+        if queue is None:
+            logger.critical("Queue doesn't exist on the server")
+            sys.exit(1)
+
+        ret, output = self._call('%s %s' % (queue / 'commands' / 'status',
+                                            job_id),
+                                 True)
+        if ret == 0:
+            print("done")
+            print(output)
+        elif ret == 2:
+            print("running")
+        elif ret == 3:
+            print("not found")
+        else:
+            logger.error("Error!")
+            sys.exit(1)
 
     def download(self, job_id, files):
         # TODO : download
