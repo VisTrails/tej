@@ -24,11 +24,14 @@ def _submit(args):
 
 
 def _status(args):
+    if args.id is None:
+        logging.critical("Missing job identifier")
+        sys.exit(1)
     RemoteQueue(args.destination, args.queue).status(args.id)
 
 
 def _download(args):
-    RemoteQueue(args.destination, args.queue).kill(args.files)
+    RemoteQueue(args.destination, args.queue).download(args.files)
 
 
 def _kill(args):
@@ -140,7 +143,7 @@ def main():
 
     # Kill action
     parser_kill = subparsers.add_parser(
-            'status', parents=[options, options_dest],
+            'kill', parents=[options, options_dest],
             help="Kills a running job")
     parser_kill.add_argument('--id', action='store',
                                help="Identifier of the running job")
