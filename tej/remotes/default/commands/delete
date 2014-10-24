@@ -32,8 +32,8 @@ fi
 
 # Reads two lines from file
 exec 3<"$job_root/status"
-read -u 3 status
-read -u 3 arg
+read status 0<&3
+read arg 0<&3
 exec 3<&-
 
 echo "status=$status arg=$arg" >> tej.log
