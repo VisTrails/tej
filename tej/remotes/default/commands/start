@@ -11,7 +11,7 @@
 #   1. script filename
 #
 
-(date; pwd; echo "start $@") >> /tmp/tej.log
+(date; echo "start $@") >> "$(dirname "$0")/../tej.log"
 
 job_dir="$(pwd)"
 script="$1"
@@ -26,6 +26,8 @@ pid=$!
 
 wait $pid
 exitcode=$?
+
+(date; echo "finished $@") >> "$(dirname "$0")/../tej.log"
 
 # Updates status file
 (echo "finished"; echo $exitcode) > ../status

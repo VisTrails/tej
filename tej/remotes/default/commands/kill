@@ -15,17 +15,18 @@
 #   (already removed?)
 #
 
-(date; pwd; echo "kill $@") >> /tmp/tej.log
-
-cd "$(dirname 0)"
-
 # Inputs
 job_id="$1"
 
-job_root="../jobs/$job_id"
+cd "$(dirname 0)/.."
+
+(date; echo "kill $@") >> tej.log
+
+job_root="jobs/$job_id"
 
 if ! [ -d "$job_root" ]; then
     echo "No job '$job_id'" >&2
+    echo "No such job" >> tej.log
     exit 3
 fi
 
@@ -35,16 +36,21 @@ read -u 3 status
 read -u 3 arg
 exec 3<&-
 
+echo "status=$status arg=$arg" >> tej.log
+
 if [ "$status" = running ]; then
     kill -TERM $arg
     sleep 3
     if kill -KILL $arg; then
         echo "Job did not finish in time -- killed" >&2
+        echo "Job did not finish in time -- killed" >> tej.log
     else
         echo "Job terminated" >&2
+        echo "Job terminated" >> tej.log
     fi
     exit 0
 else
     echo "Job is not running" >&2
+    echo "Job is not running" >> tej.log
     exit 1
 fi

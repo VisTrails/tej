@@ -15,17 +15,18 @@
 #   no such job (already removed?)
 #
 
-(date; pwd; echo "delete $@") >> /tmp/tej.log
-
-cd "$(dirname 0)"
-
 # Inputs
 job_id="$1"
 
-job_root="../jobs/$job_id"
+cd "$(dirname "$0")/.."
+
+(date; echo "delete $@") >> tej.log
+
+job_root="jobs/$job_id"
 
 if ! [ -d "$job_root" ]; then
     echo "No job '$job_id'" >&2
+    echo "No such job" >> tej.log
     exit 3
 fi
 
@@ -35,10 +36,13 @@ read -u 3 status
 read -u 3 arg
 exec 3<&-
 
+echo "status=$status arg=$arg" >> tej.log
+
 if [ "$status" = finished ]; then
     rm -Rf "$job_root"
     exit 0
 else
     echo "Job is still running" >&2
+    echo "Job is still running" >> tej.log
     exit 2
 fi

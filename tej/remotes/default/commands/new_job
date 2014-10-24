@@ -14,22 +14,24 @@
 #   0, prints out directory in which to upload job
 #
 
-cd "$(dirname $0)"
-
-(date; pwd; echo "new_job $@") >> /tmp/tej.log
-
 # Inputs
 job_id="$1"
 
+cd "$(dirname $0)/.."
+
+(date; echo "new_job $@") >> tej.log
+
 # Creates directories
-job_root="../jobs/$job_id"
+job_root="jobs/$job_id"
 if ! mkdir "$job_root" 2>/dev/null; then
     echo "Job already exists!" >&2
+    echo "Job already exists!" >> tej.log
     exit 1
 fi
 job_dir="$job_root/stage
 mkdir "$job_dir"
 
-# Prints out the name of the new directory, where the job is to be copied
-cd "$(pwd)/$job_dir"
+# Prints out the name of the new directory, where the job is to be uploaded
+cd "$job_dir"
+pwd >> "$(dirname "$0")/../tej.log"
 pwd
