@@ -26,7 +26,7 @@ job_root="../jobs/$job_id"
 
 if ! [ -d "$job_root" ]; then
     echo "No job '$job_id'" >&2
-    exit 0
+    exit 3
 fi
 
 # Reads two lines from file
@@ -40,5 +40,5 @@ if [ "$status" = finished ]; then
     exit 0
 else
     echo "Job is still running" >&2
-    exit 1
+    exit 2
 fi
