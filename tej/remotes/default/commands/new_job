@@ -28,7 +28,7 @@ if ! mkdir "$job_root" 2>/dev/null; then
     echo "Job already exists!" >> tej.log
     exit 1
 fi
-job_dir="$job_root/stage
+job_dir="$job_root/stage"
 mkdir "$job_dir"
 
 # Prints out the name of the new directory, where the job is to be uploaded

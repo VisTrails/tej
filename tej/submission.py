@@ -2,15 +2,37 @@ from __future__ import unicode_literals
 
 import logging
 import paramiko
-import re
 import pkg_resources
-from rpaths import PosixPath
+import random
+import re
+from rpaths import PosixPath, Path
 import scp
 import string
 import sys
 
+from tej.utils import iteritems, irange
+
 
 logger = logging.getLogger('tej')
+
+
+def unique_names():
+    """Generates unique sequences of bytes.
+    """
+    characters = ("abcdefghijklmnopqrstuvwxyz"
+                  "0123456789")
+    characters = [characters[i:i + 1] for i in irange(len(characters))]
+    rng = random.Random()
+    while True:
+        letters = [rng.choice(characters) for i in irange(10)]
+        yield ''.join(letters)
+unique_names = unique_names()
+
+
+def make_unique_name():
+    """Makes a unique (random) string.
+    """
+    return next(unique_names)
 
 
 def shell_escape(s):
@@ -65,6 +87,9 @@ class RemoteQueue(object):
         self.ssh = paramiko.SSHClient()
         self.ssh.load_system_host_keys()
         self.ssh.set_missing_host_key_policy(paramiko.RejectPolicy())
+        logger.debug("Connecting with %s",
+                     ', '.join(
+                         '%s=%r' % i for i in iteritems(info)))
         self.ssh.connect(**info)
         logger.debug("Connected to %s", info['hostname'])
 
@@ -118,6 +143,8 @@ class RemoteQueue(object):
             new = queue.parent / answer[8:]
             logger.debug("Found link to %s, recursing", new)
             return self._resolve_queue(new, depth + 1)
+        logging.critical("Server returned %r" % answer)
+        sys.exit(1)
 
     def _get_queue(self):
         queue, depth = self._resolve_queue(self.queue)
@@ -186,7 +213,30 @@ class RemoteQueue(object):
         if queue is None:
             queue = self._setup()
 
-        # TODO : submit
+        if job_id is None:
+            job_id = make_unique_name()
+
+        if script is None:
+            script = 'start.sh'
+
+        # Create directory
+        target = self._check_output('%s %s' % (
+                                    queue / 'commands' / 'new_job',
+                                    job_id))
+        target = PosixPath(target)
+        logger.debug("Server created directory %s", target)
+
+        # Upload to directory
+        scp_client = scp.SCPClient(self.ssh.get_transport())
+        for p in Path(directory).listdir():
+            scp_client.put(str(p), str(target), recursive=True)
+        logger.debug("Files uploaded")
+
+        # Submit job
+        self._check_call('%s %s %s %s' % (queue / 'commands' / 'submit',
+                                          job_id, target,
+                                          script))
+        logger.info("Submitted job %s", job_id)
 
     def status(self, job_id):
         # TODO : status

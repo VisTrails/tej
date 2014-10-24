@@ -10,6 +10,7 @@
 # Arguments:
 #   1. job ID
 #   2. job directory, obtained from new_job
+#   3. script path (relative to job)
 #
 
 # Include
@@ -33,4 +34,4 @@ fi
 
 # Starts process
 cd "$job_dir"
-nohup ./start "$script" > /dev/null 2>&1 < /dev/null &
+nohup "$(dirname "$0")/start" "$script" > /dev/null 2>&1 < /dev/null &

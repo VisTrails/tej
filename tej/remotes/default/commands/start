@@ -11,13 +11,15 @@
 #   1. script filename
 #
 
-(date; echo "start $@") >> "$(dirname "$0")/../tej.log"
+(date; echo "start $@"; pwd) >> "$(dirname "$0")/../tej.log"
 
 job_dir="$(pwd)"
 script="$1"
 
 
 # Starts program
+chmod +x "$script" 2>&1
+script="$(dirname "$script")/$(basename "$script")"
 "$script" &
 pid=$!
 
@@ -27,7 +29,7 @@ pid=$!
 wait $pid
 exitcode=$?
 
-(date; echo "finished $@") >> "$(dirname "$0")/../tej.log"
+(date; echo "finished $@"; echo $exitcode) >> "$(dirname "$0")/../tej.log"
 
 # Updates status file
 (echo "finished"; echo $exitcode) > ../status
