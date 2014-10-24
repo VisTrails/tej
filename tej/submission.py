@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import getpass
 import logging
 import paramiko
 import pkg_resources
@@ -66,6 +67,8 @@ def parse_ssh_destination(destination):
     info = {}
     if user:
         info['username'] = user
+    else:
+        info['username'] = getpass.getuser()
     if port:
         info['port'] = int(port)
     info['hostname'] = host
@@ -84,7 +87,7 @@ class RemoteQueue(object):
         """Connects via SSH.
         """
         try:
-            info = parse_ssh_destination(self.destination)
+            self.parsed_destination = parse_ssh_destination(self.destination)
         except ValueError as e:
             logger.critical(e)
             sys.exit(1)
@@ -93,10 +96,10 @@ class RemoteQueue(object):
         self.ssh.load_system_host_keys()
         self.ssh.set_missing_host_key_policy(paramiko.RejectPolicy())
         logger.debug("Connecting with %s",
-                     ', '.join(
-                         '%s=%r' % i for i in iteritems(info)))
-        self.ssh.connect(**info)
-        logger.debug("Connected to %s", info['hostname'])
+                     ', '.join('%s=%r' % i
+                               for i in iteritems(self.parsed_destination)))
+        self.ssh.connect(**self.parsed_destination)
+        logger.debug("Connected to %s", self.parsed_destination['hostname'])
 
     def _call(self, cmd, get_output):
         """Calls a command through the SSH connection.
@@ -263,7 +266,9 @@ class RemoteQueue(object):
             queue = self._setup()
 
         if job_id is None:
-            job_id = make_unique_name()
+            job_id = '%s_%s_%s' % (Path(directory).unicodename,
+                                   self.parsed_destination['username'],
+                                   make_unique_name())
 
         if script is None:
             script = 'start.sh'
