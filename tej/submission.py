@@ -7,6 +7,7 @@ import random
 import re
 from rpaths import PosixPath, Path
 import scp
+import select
 import string
 import sys
 
@@ -93,37 +94,45 @@ class RemoteQueue(object):
         self.ssh.connect(**info)
         logger.debug("Connected to %s", info['hostname'])
 
-    def _check_call(self, cmd):
+    def _call(self, cmd, get_output):
+
         chan = self.ssh.get_transport().open_session()
         try:
-            logger.debug("Invoking %r", cmd)
+            logger.debug("Invoking %r%s",
+                         cmd, " (stdout)" if get_output else "")
             chan.exec_command('/bin/sh -c %s' % shell_escape(cmd))
-            assert chan.recv_exit_status() == 0
+            output = b''
+            while not chan.exit_status_ready():
+                r, w, e = select.select([chan], [], [])
+                if chan in r:
+                    if chan.recv_stderr_ready():
+                        data = chan.recv_stderr(1024)
+                        if data:
+                            sys.stderr.buffer.write(data)
+                            sys.stderr.flush()
+                    if chan.recv_ready():
+                        data = chan.recv(1024)
+                        if get_output:
+                            output += data
+            return chan.recv_exit_status(), output
         finally:
             chan.close()
 
-    def _check_output(self, cmd):
-        chan = self.ssh.get_transport().open_session()
-        try:
-            logger.debug("Invoking %r (stdout)", cmd)
-            chan.exec_command('/bin/sh -c %s' % shell_escape(cmd))
-            output = b''
-            while True:
-                data = chan.recv(1024)
-                if len(data) == 0:
-                    break
-                output += data
-            output = output.rstrip(b'\r\n')
-            assert chan.recv_exit_status() == 0
-        finally:
-            chan.close()
+    def check_call(self, cmd):
+        ret, _ = self._call(cmd, False)
+        assert ret == 0
+
+    def check_output(self, cmd):
+        ret, output = self._call(cmd, True)
+        assert ret == 0
+        output = output.rstrip(b'\r\n')
         logger.debug("Output: %r", output)
         return output
 
     def _resolve_queue(self, queue, depth=0):
         if depth == 0:
             logger.debug("resolve_queue(%s)", queue)
-        answer = self._check_output(
+        answer = self.check_output(
                 'if [ -d %(queue)s ]; then '
                 '    cd %(queue)s; echo "dir: $(pwd)"; '
                 'elif [ -f %(queue)s ]; then '
@@ -133,7 +142,10 @@ class RemoteQueue(object):
                 'fi' % {
                     'queue': shell_escape(bytes(queue))})
         if answer == b'no':
-            logger.debug("Broken link at depth=%d", depth)
+            if depth > 0:
+                logger.debug("Broken link at depth=%d", depth)
+            else:
+                logger.debug("Path doesn't exist")
             return None, depth
         elif answer.startswith(b'dir: '):
             new = PosixPath(answer[5:])
@@ -167,7 +179,7 @@ class RemoteQueue(object):
                     logger.info("Replacing link to %s...", queue)
                 else:
                     logger.info("Replacing existing queue...")
-                self._check_call('rm -Rf %s' % shell_escape(str(self.queue)))
+                self.check_call('rm -Rf %s' % shell_escape(str(self.queue)))
             else:
                 if queue is not None and depth > 0:
                     logger.critical("Queue already exists (links to %s)\n"
@@ -183,7 +195,7 @@ class RemoteQueue(object):
         queue = self._setup()
 
         for link in links:
-            self._check_call('echo "tejdir:" %(queue)s > %(link)s' % {
+            self.check_call('echo "tejdir:" %(queue)s > %(link)s' % {
                     'queue': shell_escape(str(queue)),
                     'link': shell_escape(link)})
 
@@ -191,7 +203,7 @@ class RemoteQueue(object):
         logger.debug("Installing runtime at %s", self.queue)
 
         # Expands ~user in queue
-        output = self._check_output('echo %s' % shell_escape(str(self.queue)))
+        output = self.check_output('echo %s' % shell_escape(str(self.queue)))
         queue = PosixPath(output.rstrip(b'\r\n'))
         logger.debug("Resolved to %s", queue)
 
@@ -202,7 +214,7 @@ class RemoteQueue(object):
         logger.debug("Files uploaded")
 
         # Runs post-setup script
-        self._check_call('/bin/sh %s' % (queue / 'commands' / 'setup'))
+        self.check_call('/bin/sh %s' % (queue / 'commands' / 'setup'))
         logger.debug("Post-setup script done")
 
         return queue
@@ -220,9 +232,9 @@ class RemoteQueue(object):
             script = 'start.sh'
 
         # Create directory
-        target = self._check_output('%s %s' % (
-                                    queue / 'commands' / 'new_job',
-                                    job_id))
+        target = self.check_output('%s %s' % (
+                                   queue / 'commands' / 'new_job',
+                                   job_id))
         target = PosixPath(target)
         logger.debug("Server created directory %s", target)
 
@@ -233,9 +245,9 @@ class RemoteQueue(object):
         logger.debug("Files uploaded")
 
         # Submit job
-        self._check_call('%s %s %s %s' % (queue / 'commands' / 'submit',
-                                          job_id, target,
-                                          script))
+        self.check_call('%s %s %s %s' % (queue / 'commands' / 'submit',
+                                         job_id, target,
+                                         script))
         logger.info("Submitted job %s", job_id)
 
     def status(self, job_id):
