@@ -57,6 +57,8 @@ _re_ssh = re.compile(r'^'
                      r'$')
 
 def parse_ssh_destination(destination):
+    """Parses the SSH destination argument.
+    """
     match = _re_ssh.match(destination)
     if not match:
         raise ValueError("Invalid destination: %s" % destination)
@@ -79,6 +81,8 @@ class RemoteQueue(object):
         self._connect()
 
     def _connect(self):
+        """Connects via SSH.
+        """
         try:
             info = parse_ssh_destination(self.destination)
         except ValueError as e:
@@ -95,7 +99,11 @@ class RemoteQueue(object):
         logger.debug("Connected to %s", info['hostname'])
 
     def _call(self, cmd, get_output):
+        """Calls a command through the SSH connection.
 
+        Remote stderr gets printed to this program's stderr. Output is captured
+        and may be returned.
+        """
         chan = self.ssh.get_transport().open_session()
         try:
             logger.debug("Invoking %r%s",
@@ -119,10 +127,14 @@ class RemoteQueue(object):
             chan.close()
 
     def check_call(self, cmd):
+        """Calls a command through SSH.
+        """
         ret, _ = self._call(cmd, False)
         assert ret == 0
 
     def check_output(self, cmd):
+        """Calls a command through SSH and returns its output.
+        """
         ret, output = self._call(cmd, True)
         assert ret == 0
         output = output.rstrip(b'\r\n')
@@ -130,6 +142,14 @@ class RemoteQueue(object):
         return output
 
     def _resolve_queue(self, queue, depth=0):
+        """Finds the location of tej's queue directory on the server.
+
+        The `queue` set when constructing this `RemoteQueue` might be relative
+        to the home directory and might contain ``~user`` placeholders. Also,
+        each queue may in fact be a link to another path (a file containing
+        the string ``tejdir:``, a space, and a new pathname, relative to this
+        link's location).
+        """
         if depth == 0:
             logger.debug("resolve_queue(%s)", queue)
         answer = self.check_output(
@@ -159,6 +179,8 @@ class RemoteQueue(object):
         sys.exit(1)
 
     def _get_queue(self):
+        """Gets the actual location of the queue, or None.
+        """
         queue, depth = self._resolve_queue(self.queue)
         if queue is None and depth > 0:
             logger.critical("Queue link chain is broken")
@@ -167,6 +189,14 @@ class RemoteQueue(object):
         return queue
 
     def setup(self, links=None, force=False):
+        """Installs the runtime at the target location.
+
+        This will not replace an existing installation, unless it is a broken
+        chain of links or `force` is True.
+
+        After installation, creates links to this installation at the specified
+        locations.
+        """
         if not links:
             links = []
 
@@ -200,6 +230,8 @@ class RemoteQueue(object):
                     'link': shell_escape(link)})
 
     def _setup(self):
+        """Actually installs the runtime.
+        """
         logger.debug("Installing runtime at %s", self.queue)
 
         # Expands ~user in queue
@@ -220,6 +252,11 @@ class RemoteQueue(object):
         return queue
 
     def submit(self, job_id, directory, script=None):
+        """Submits a job to the queue.
+
+        If the runtime is not there, it will be installed. If it is a broken
+        chain of links, error.
+        """
         queue = self._get_queue()
 
         if queue is None:
