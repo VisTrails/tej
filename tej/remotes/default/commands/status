@@ -7,6 +7,14 @@
 # Job status script
 # Started on the server to get the status of a job
 #
+# Arguments:
+#   1. job ID
+#
+# Returns:
+#   0 if job is done, 2 if job is still running, 3 if there is no such job
+#   (already removed?)
+#   If "0", prints exit code on stdout
+#
 
 (date; pwd; echo "status $@") >> /tmp/tej.log
 

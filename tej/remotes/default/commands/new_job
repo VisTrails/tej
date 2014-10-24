@@ -7,6 +7,12 @@
 # Job allocation script
 # Runs on the server before a job gets created
 #
+# Arguments:
+#   1. job ID
+#
+# Returns:
+#   0, prints out directory in which to upload job
+#
 
 cd "$(dirname $0)"
 

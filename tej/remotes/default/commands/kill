@@ -7,6 +7,13 @@
 # Job killing script
 # Started on the server to kill a job
 #
+# Arguments:
+#   1. job ID
+#
+# Returns:
+#   0 if job was killed, 1 if job was not running, 3 if there is no such job
+#   (already removed?)
+#
 
 (date; pwd; echo "kill $@") >> /tmp/tej.log
 

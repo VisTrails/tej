@@ -7,6 +7,9 @@
 # Job starting wrapper
 # Started on the server, detached, by the submit script
 #
+# Arguments:
+#   1. script filename
+#
 
 (date; pwd; echo "start $@") >> /tmp/tej.log
 

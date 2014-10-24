@@ -7,6 +7,10 @@
 # Job submission script
 # Runs on the server once the job has been transferred
 #
+# Arguments:
+#   1. job ID
+#   2. job directory, obtained from new_job
+#
 
 (date; pwd; echo "submit $@") >> /tmp/tej.log
 

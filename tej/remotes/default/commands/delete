@@ -7,6 +7,13 @@
 # Job deletion script
 # Started on the server to delete a job
 #
+# Arguments:
+#   1. job ID
+#
+# Returns:
+#   0 if job was removed, 2 if job is stiff running (use kill), 3 if there is
+#   no such job (already removed?)
+#
 
 (date; pwd; echo "delete $@") >> /tmp/tej.log
 
