@@ -326,3 +326,5 @@ class RemoteQueue(object):
     def delete(self, job_id):
         # TODO : delete
         raise NotImplementedError("delete")
+
+    # TODO : list
