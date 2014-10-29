@@ -34,7 +34,16 @@ class Queue(Module):
         self.set_output('queue', tej.RemoteQueue(destination, queue))
 
 
-JobDescr = namedtuple('JobDescr', ['queue', 'job'])
+class RemoteJob(object):
+    def __init__(self, queue, job_id):
+        self.queue = queue
+        self.job_id = job_id
+
+    def get_monitor_id(self):
+        # Identifier for the JobMonitor
+        return '%s/%s/%s' % (self.queue.destination_string,
+                             self.queue.queue,
+                             self.job_id)
 
 
 class Job(Module):
@@ -51,6 +60,8 @@ class Job(Module):
     _output_ports = [('job', '(org.vistrails.extra.tej:Job)'),
                      ('exitcode', '(basic:Integer)')]
 
+    job = None
+
     def compute(self):
         queue = self.get_input('queue')
         job_id = self.get_input('id')
@@ -61,20 +72,17 @@ class Job(Module):
         except tej.JobNotFound:
             raise ModuleError(self, "Job not found")
 
-        job_descr = JobDescr(queue=queue, id=job_id)
+        # Create job object
+        self.job = RemoteJob(queue=queue, job_id=job_id)
 
         if status == tej.RemoteQueue.JOB_DONE:
-            self.set_output('job', job_descr)
+            self.set_output('job', self.job)
             self.set_output('exitcode', arg)
         elif status == tej.RemoteQueue.JOB_RUNNING:
             raise ModuleSuspended(self, "Remote job is running",
-                                  monitor=self.job_get_monitor())
+                                  monitor=self.job)
         else:
             raise ModuleError(self, "Invalid job status %r" % status)
-
-    def job_get_monitor(self):
-        todo # FIXME : Can't figure out what goes in here
-        # The Job class doesn't seem to match what JobMonitor calls
 
 
 class SubmitJob(JobMixin, Job):
@@ -90,14 +98,21 @@ class SubmitJob(JobMixin, Job):
                     ('id', '(basic:String)',
                      {'optional': True})]
 
-    def compute(self):
-        queue = self.get_input('queue')
-        identifier = self.get_input('id')
+    def job_id(self, params):
+        return self.job.get_monitor_id()
 
-        queue.submit(identifier, self.get_input('job'),
-                     self.get_input('script'))
+    def job_read_inputs(self):
+        return {'destination': self.get_input('queue').destination_string,
+                'queue': self.get_input('queue').queue,
+                'job_id': self.get_input('id')}
 
-    job_get_monitor = Job.job_get_monitor
+    def job_start(self, params):
+        queue = tej.RemoteQueue(params['destination'], params['queue'])
+        queue.submit(params['job_id'], self.get_input('directory'))
+        return params
+
+    def job_get_monitor(self, params):
+        return self.job
 
 
 _modules = [Queue, Job, SubmitJob]
