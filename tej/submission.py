@@ -15,6 +15,12 @@ import sys
 from tej.utils import iteritems, irange
 
 
+__all__ = ['DEFAULT_TEJ_DIR',
+           'ConfigurationError', 'QueueDoesntExist', 'QueueLinkBroken',
+           'QueueExists', 'JobAlreadyExists', 'JobNotFound',
+           'parse_ssh_destination', 'RemoteQueue']
+
+
 DEFAULT_TEJ_DIR = '~/.tej'
 
 
