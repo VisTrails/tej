@@ -15,6 +15,42 @@ import sys
 from tej.utils import iteritems, irange
 
 
+DEFAULT_TEJ_DIR = '~/.tej'
+
+
+class ConfigurationError(Exception):
+    """Error in the way the server is set up or the client was called.
+    """
+
+
+class QueueDoesntExist(ConfigurationError):
+    """Queue doesn't exist on the server.
+
+    `submit` and `setup` will create a queue on the server, but other commands
+    like `status` and `kill` expect it to be there.
+    """
+    def __init__(self, msg="Queue doesn't exist on the server"):
+        super(QueueDoesntExist, self).__init__(msg)
+
+
+class QueueLinkBroken(QueueDoesntExist):
+    """The chain of links is broken.
+
+    There is a link file on the server that doesn't point to anything.
+    """
+    def __init__(self, msg="Queue link chain is broken"):
+        super(QueueLinkBroken, self).__init__(msg)
+
+
+class QueueExists(ConfigurationError):
+    """The queue whose creation was requested already exists.
+
+    A `force` argument (``--force``) is provided to replace it anyway.
+    """
+    def __init__(self, msg="Queue already exists"):
+        super(QueueExists, self).__init__(msg)
+
+
 logger = logging.getLogger('tej')
 
 
@@ -184,7 +220,7 @@ class RemoteQueue(object):
             logger.debug("Found link to %s, recursing", new)
             return self._resolve_queue(new, depth + 1)
         logging.critical("Server returned %r", answer)
-        sys.exit(1)
+        raise RuntimeError("Remote command failed in unexpected way")
 
     def _get_queue(self):
         """Gets the actual location of the queue, or None.
@@ -192,7 +228,7 @@ class RemoteQueue(object):
         queue, depth = self._resolve_queue(self.queue)
         if queue is None and depth > 0:
             logger.critical("Queue link chain is broken")
-            sys.exit(1)
+            raise QueueLinkBroken
         logger.debug("get_queue = %s", queue)
         return queue
 
@@ -228,7 +264,7 @@ class RemoteQueue(object):
                 else:
                     logger.critical("Queue already exists\n"
                                     "Use --force to replace")
-                sys.exit(1)
+                raise QueueExists
 
         queue = self._setup()
 
@@ -305,7 +341,7 @@ class RemoteQueue(object):
 
         if queue is None:
             logger.critical("Queue doesn't exist on the server")
-            sys.exit(1)
+            raise QueueDoesntExist
 
         ret, output = self._call('%s %s' % (queue / 'commands' / 'status',
                                             job_id),
@@ -319,7 +355,8 @@ class RemoteQueue(object):
             print("not found")
         else:
             logger.error("Error!")
-            sys.exit(1)
+            raise RuntimeError("Remote script return unexpected error code "
+                               "%d" % ret)
 
     def download(self, job_id, files):
         # TODO : download

@@ -10,8 +10,7 @@ import logging
 import sys
 
 from tej import __version__ as tej_version
-
-from tej.submission import RemoteQueue
+from tej.submission import DEFAULT_TEJ_DIR, ConfigurationError, RemoteQueue
 
 
 def _setup(args):
@@ -54,9 +53,6 @@ def setup_logging(verbosity):
 
     logging.getLogger().addHandler(handler)
     logging.getLogger('tej').setLevel(level)
-
-
-DEFAULT_TEJ_DIR = '~/.tej'
 
 
 def main():
@@ -162,7 +158,12 @@ def main():
     args = parser.parse_args()
     setup_logging(args.verbosity)
 
-    args.func(args)
+    try:
+        args.func(args)
+    except ConfigurationError:
+        # No need to show a traceback here, this is not an internal error
+        # Useful information has already been printed on the logger
+        sys.exit(1)
     sys.exit(0)
 
 
