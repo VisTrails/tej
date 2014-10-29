@@ -31,7 +31,7 @@ def _status(args):
 
 
 def _download(args):
-    RemoteQueue(args.destination, args.queue).download(args.files)
+    RemoteQueue(args.destination, args.queue).download(args.id, args.files)
 
 
 def _kill(args):
@@ -95,8 +95,8 @@ def main():
     options_dest.add_argument('destination', action='store',
                               help="Machine to SSH into; [user@]host[:port]")
     options_dest.add_argument('--queue', action='store',
-                               default=DEFAULT_TEJ_DIR,
-                               help="Directory for tej's files")
+                              default=DEFAULT_TEJ_DIR,
+                              help="Directory for tej's files")
 
     # Setup action
     parser_setup = subparsers.add_parser(
@@ -146,7 +146,7 @@ def main():
             'kill', parents=[options, options_dest],
             help="Kills a running job")
     parser_kill.add_argument('--id', action='store',
-                               help="Identifier of the running job")
+                             help="Identifier of the running job")
     parser_kill.set_defaults(func=_kill)
 
     # Delete action

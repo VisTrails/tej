@@ -57,6 +57,7 @@ _re_ssh = re.compile(r'^'
                      r'(?::([0-9]+))?'           # ':port'
                      r'$')
 
+
 def parse_ssh_destination(destination):
     """Parses the SSH destination argument.
     """
@@ -178,7 +179,7 @@ class RemoteQueue(object):
             new = queue.parent / answer[8:]
             logger.debug("Found link to %s, recursing", new)
             return self._resolve_queue(new, depth + 1)
-        logging.critical("Server returned %r" % answer)
+        logging.critical("Server returned %r", answer)
         sys.exit(1)
 
     def _get_queue(self):
