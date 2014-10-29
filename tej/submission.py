@@ -79,7 +79,17 @@ def parse_ssh_destination(destination):
 
 class RemoteQueue(object):
     def __init__(self, destination, queue):
-        self.destination = destination
+        if isinstance(destination, basestring):
+            try:
+                self.destination = parse_ssh_destination(self.destination)
+            except ValueError as e:
+                logger.critical(e)
+                raise ValueError("Can't parse SSH destination %r" %
+                                 self.destination)
+        else:
+            if 'hostname' not in destination:
+                raise ValueError("destination dictionary is missing hostname")
+            self.destination = destination
         self.queue = PosixPath(queue)
         self.ssh = None
         self._connect()
@@ -87,20 +97,14 @@ class RemoteQueue(object):
     def _connect(self):
         """Connects via SSH.
         """
-        try:
-            self.parsed_destination = parse_ssh_destination(self.destination)
-        except ValueError as e:
-            logger.critical(e)
-            sys.exit(1)
-
         self.ssh = paramiko.SSHClient()
         self.ssh.load_system_host_keys()
         self.ssh.set_missing_host_key_policy(paramiko.RejectPolicy())
         logger.debug("Connecting with %s",
                      ', '.join('%s=%r' % i
-                               for i in iteritems(self.parsed_destination)))
-        self.ssh.connect(**self.parsed_destination)
-        logger.debug("Connected to %s", self.parsed_destination['hostname'])
+                               for i in iteritems(self.destination)))
+        self.ssh.connect(**self.destination)
+        logger.debug("Connected to %s", self.destination['hostname'])
 
     def _call(self, cmd, get_output):
         """Calls a command through the SSH connection.
@@ -268,7 +272,7 @@ class RemoteQueue(object):
 
         if job_id is None:
             job_id = '%s_%s_%s' % (Path(directory).unicodename,
-                                   self.parsed_destination['username'],
+                                   self.destination['username'],
                                    make_unique_name())
 
         if script is None:
