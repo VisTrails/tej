@@ -10,7 +10,8 @@ import logging
 import sys
 
 from tej import __version__ as tej_version
-from tej.submission import DEFAULT_TEJ_DIR, ConfigurationError, RemoteQueue
+from tej.submission import DEFAULT_TEJ_DIR, ConfigurationError, JobNotFound, \
+    RemoteQueue
 
 
 def _setup(args):
@@ -26,7 +27,18 @@ def _status(args):
     if args.id is None:
         logging.critical("Missing job identifier")
         sys.exit(1)
-    RemoteQueue(args.destination, args.queue).status(args.id)
+    try:
+        status, arg = RemoteQueue(args.destination, args.queue).status(args.id)
+        if status == RemoteQueue.JOB_DONE:
+            print("done")
+        elif status == RemoteQueue.JOB_RUNNING:
+            print("running")
+        else:
+            raise RuntimeError("Got unknown job status %r" % status)
+        if arg is not None:
+            print(arg)
+    except JobNotFound:
+        print("not found")
 
 
 def _download(args):
