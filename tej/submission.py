@@ -51,6 +51,13 @@ class QueueExists(ConfigurationError):
         super(QueueExists, self).__init__(msg)
 
 
+class JobAlreadyExists(ConfigurationError):
+    """A job with this name already exists on the server; submission failed.
+    """
+    def __init__(self, msg="Job already exists"):
+        super(JobAlreadyExists, self).__init__(msg)
+
+
 logger = logging.getLogger('tej')
 
 
@@ -166,6 +173,7 @@ class RemoteQueue(object):
                         data = chan.recv(1024)
                         if get_output:
                             output += data
+            output = output.rstrip(b'\r\n')
             return chan.recv_exit_status(), output
         finally:
             chan.close()
@@ -181,7 +189,6 @@ class RemoteQueue(object):
         """
         ret, output = self._call(cmd, True)
         assert ret == 0
-        output = output.rstrip(b'\r\n')
         logger.debug("Output: %r", output)
         return output
 
@@ -315,9 +322,12 @@ class RemoteQueue(object):
             script = 'start.sh'
 
         # Create directory
-        target = self.check_output('%s %s' % (
-                                   queue / 'commands' / 'new_job',
-                                   job_id))
+        ret, target = self._call('%s %s' % (
+                                 queue / 'commands' / 'new_job',
+                                 job_id),
+                                 True)
+        if ret == 4:
+            raise JobAlreadyExists
         target = PosixPath(target)
         logger.debug("Server created directory %s", target)
 

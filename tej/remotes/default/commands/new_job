@@ -11,7 +11,8 @@
 #   1. job ID
 #
 # Returns:
-#   0, prints out directory in which to upload job
+#   0 if succeeded, 4 if job already exists
+#   If 0, prints out directory in which to upload job
 #
 
 # Inputs
@@ -26,7 +27,7 @@ job_root="jobs/$job_id"
 if ! mkdir "$job_root" 2>/dev/null; then
     echo "Job already exists!" >&2
     echo "Job already exists!" >> tej.log
-    exit 1
+    exit 4
 fi
 job_dir="$job_root/stage"
 mkdir "$job_dir"
