@@ -58,6 +58,13 @@ class JobAlreadyExists(ConfigurationError):
         super(JobAlreadyExists, self).__init__(msg)
 
 
+class JobNotFound(ConfigurationError):
+    """A job with this name wasn't found on the server.
+    """
+    def __init__(self, msg="Job not found"):
+        super(JobNotFound, self).__init__(msg)
+
+
 logger = logging.getLogger('tej')
 
 
@@ -121,6 +128,9 @@ def parse_ssh_destination(destination):
 
 
 class RemoteQueue(object):
+    JOB_DONE = 0
+    JOB_RUNNING = 2
+
     def __init__(self, destination, queue):
         if isinstance(destination, basestring):
             try:
@@ -357,12 +367,11 @@ class RemoteQueue(object):
                                             job_id),
                                  True)
         if ret == 0:
-            print("done")
-            print(output)
+            return RemoteQueue.JOB_DONE, output
         elif ret == 2:
-            print("running")
+            return RemoteQueue.JOB_RUNNING, None
         elif ret == 3:
-            print("not found")
+            raise JobNotFound
         else:
             logger.error("Error!")
             raise RuntimeError("Remote script return unexpected error code "
