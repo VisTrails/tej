@@ -153,6 +153,16 @@ class RemoteQueue(object):
         self.ssh = None
         self._connect()
 
+    @property
+    def destination_string(self):
+        if self.destination.get('port', 22) != 22:
+            return 'ssh://%s@%s:%d' % (self.destination['username'],
+                                       self.destination['hostname'],
+                                       self.destination['port'])
+        else:
+            return 'ssh://%s@%s' % (self.destination['username'],
+                                    self.destination['hostname'])
+
     def _connect(self):
         """Connects via SSH.
         """
