@@ -140,7 +140,7 @@ class RemoteQueue(object):
     def __init__(self, destination, queue):
         if isinstance(destination, basestring):
             try:
-                self.destination = parse_ssh_destination(self.destination)
+                self.destination = parse_ssh_destination(destination)
             except ValueError as e:
                 logger.critical(e)
                 raise ValueError("Can't parse SSH destination %r" %
