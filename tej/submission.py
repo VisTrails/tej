@@ -140,7 +140,7 @@ class RemoteQueue(object):
     def __init__(self, destination, queue):
         if isinstance(destination, basestring):
             try:
-                self.destination = parse_ssh_destination(self.destination)
+                self.destination = parse_ssh_destination(destination)
             except ValueError as e:
                 logger.critical(e)
                 raise ValueError("Can't parse SSH destination %r" %
@@ -152,6 +152,16 @@ class RemoteQueue(object):
         self.queue = PosixPath(queue)
         self.ssh = None
         self._connect()
+
+    @property
+    def destination_string(self):
+        if self.destination.get('port', 22) != 22:
+            return 'ssh://%s@%s:%d' % (self.destination['username'],
+                                       self.destination['hostname'],
+                                       self.destination['port'])
+        else:
+            return 'ssh://%s@%s' % (self.destination['username'],
+                                    self.destination['hostname'])
 
     def _connect(self):
         """Connects via SSH.
