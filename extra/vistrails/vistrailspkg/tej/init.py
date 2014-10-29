@@ -1,6 +1,12 @@
+from __future__ import absolute_import, division
+
 from collections import namedtuple
-from tej.submission import RemoteQueue
-from vistrails.core.modules.vistrails_module import Module
+
+import tej
+
+from vistrails.core.modules.vistrails_module import Module, ModuleError, \
+    ModuleSuspended
+from vistrails.core.vistrail.job import JobMixin
 
 
 class Queue(Module):
@@ -24,7 +30,8 @@ class Queue(Module):
             destination = {'hostname': destination,
                            'username': self.get_input('username'),
                            'port': self.get_input('port')}
-        self.set_output('queue', RemoteQueue(destination))
+        queue = self.get_input('queue')
+        self.set_output('queue', tej.RemoteQueue(destination, queue))
 
 
 JobDescr = namedtuple('JobDescr', ['queue', 'job'])
@@ -33,18 +40,44 @@ JobDescr = namedtuple('JobDescr', ['queue', 'job'])
 class Job(Module):
     """A reference to a job in a queue.
 
-    You probably won't use this module directly.
+    Objects represented by this type only represent completed jobs, since else,
+    the creating module would have failed/suspended.
+
+    You probably won't use this module directly since it references a
+    pre-existing job by name.
     """
     _input_ports = [('id', '(basic:String)'),
                     ('queue', Queue)]
-    _output_ports = [('job', '(org.vistrails.extra.tej:Job)')]
+    _output_ports = [('job', '(org.vistrails.extra.tej:Job)'),
+                     ('exitcode', '(basic:Integer)')]
 
     def compute(self):
-        self.set_output('job', JobDescr(queue=self.get_input('queue'),
-                                        id=self.get_input('id')))
+        queue = self.get_input('queue')
+        job_id = self.get_input('id')
+
+        # Check job status
+        try:
+            status, arg = queue.status(job_id)
+        except tej.JobNotFound:
+            raise ModuleError(self, "Job not found")
+
+        job_descr = JobDescr(queue=queue, id=job_id)
+
+        if status == tej.RemoteQueue.JOB_DONE:
+            self.set_output('job', job_descr)
+            self.set_output('exitcode', arg)
+        elif status == tej.RemoteQueue.JOB_RUNNING:
+            raise ModuleSuspended(self, "Remote job is running",
+                                  monitor=self.job_get_monitor())
+        else:
+            raise ModuleError(self, "Invalid job status %r" % status)
+
+    def job_get_monitor(self):
+        todo # FIXME : Can't figure out what goes in here
+        # The Job class doesn't seem to match what JobMonitor calls
 
 
-class SubmitJob(Job):
+class SubmitJob(JobMixin, Job):
     """Starts a job on a server.
 
     Thanks to the suspension/job tracking mechanism, this module does much more
@@ -57,18 +90,14 @@ class SubmitJob(Job):
                     ('id', '(basic:String)',
                      {'optional': True})]
 
-    def update_upstream(self):
-        identifier = job_from_sig OR from input_port
-        check job status
-
     def compute(self):
         queue = self.get_input('queue')
         identifier = self.get_input('id')
-        if not identifier:
-            identifier = job_from_sig
 
         queue.submit(identifier, self.get_input('job'),
                      self.get_input('script'))
+
+    job_get_monitor = Job.job_get_monitor
 
 
 _modules = [Queue, Job, SubmitJob]
