@@ -10,8 +10,7 @@ import logging
 import sys
 
 from tej import __version__ as tej_version
-
-from tej.submission import RemoteQueue
+from tej.submission import DEFAULT_TEJ_DIR, ConfigurationError, RemoteQueue
 
 
 def _setup(args):
@@ -31,7 +30,7 @@ def _status(args):
 
 
 def _download(args):
-    RemoteQueue(args.destination, args.queue).download(args.files)
+    RemoteQueue(args.destination, args.queue).download(args.id, args.files)
 
 
 def _kill(args):
@@ -56,9 +55,6 @@ def setup_logging(verbosity):
     logging.getLogger('tej').setLevel(level)
 
 
-DEFAULT_TEJ_DIR = '~/.tej'
-
-
 def main():
     """Entry point when called on the command-line.
     """
@@ -73,6 +69,8 @@ def main():
         sys.stdout.buffer = o_stdout
         sys.stderr = writer(sys.stderr)
         sys.stderr.buffer = o_stderr
+    else:  # PY3
+        sys.stdin = sys.stdin.buffer
 
     # Parses command-line
 
@@ -95,8 +93,8 @@ def main():
     options_dest.add_argument('destination', action='store',
                               help="Machine to SSH into; [user@]host[:port]")
     options_dest.add_argument('--queue', action='store',
-                               default=DEFAULT_TEJ_DIR,
-                               help="Directory for tej's files")
+                              default=DEFAULT_TEJ_DIR,
+                              help="Directory for tej's files")
 
     # Setup action
     parser_setup = subparsers.add_parser(
@@ -146,7 +144,7 @@ def main():
             'kill', parents=[options, options_dest],
             help="Kills a running job")
     parser_kill.add_argument('--id', action='store',
-                               help="Identifier of the running job")
+                             help="Identifier of the running job")
     parser_kill.set_defaults(func=_kill)
 
     # Delete action
@@ -160,7 +158,12 @@ def main():
     args = parser.parse_args()
     setup_logging(args.verbosity)
 
-    args.func(args)
+    try:
+        args.func(args)
+    except ConfigurationError:
+        # No need to show a traceback here, this is not an internal error
+        # Useful information has already been printed on the logger
+        sys.exit(1)
     sys.exit(0)
 
 

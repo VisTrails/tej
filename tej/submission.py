@@ -15,6 +15,49 @@ import sys
 from tej.utils import iteritems, irange
 
 
+DEFAULT_TEJ_DIR = '~/.tej'
+
+
+class ConfigurationError(Exception):
+    """Error in the way the server is set up or the client was called.
+    """
+
+
+class QueueDoesntExist(ConfigurationError):
+    """Queue doesn't exist on the server.
+
+    `submit` and `setup` will create a queue on the server, but other commands
+    like `status` and `kill` expect it to be there.
+    """
+    def __init__(self, msg="Queue doesn't exist on the server"):
+        super(QueueDoesntExist, self).__init__(msg)
+
+
+class QueueLinkBroken(QueueDoesntExist):
+    """The chain of links is broken.
+
+    There is a link file on the server that doesn't point to anything.
+    """
+    def __init__(self, msg="Queue link chain is broken"):
+        super(QueueLinkBroken, self).__init__(msg)
+
+
+class QueueExists(ConfigurationError):
+    """The queue whose creation was requested already exists.
+
+    A `force` argument (``--force``) is provided to replace it anyway.
+    """
+    def __init__(self, msg="Queue already exists"):
+        super(QueueExists, self).__init__(msg)
+
+
+class JobAlreadyExists(ConfigurationError):
+    """A job with this name already exists on the server; submission failed.
+    """
+    def __init__(self, msg="Job already exists"):
+        super(JobAlreadyExists, self).__init__(msg)
+
+
 logger = logging.getLogger('tej')
 
 
@@ -57,6 +100,7 @@ _re_ssh = re.compile(r'^'
                      r'(?::([0-9]+))?'           # ':port'
                      r'$')
 
+
 def parse_ssh_destination(destination):
     """Parses the SSH destination argument.
     """
@@ -78,7 +122,17 @@ def parse_ssh_destination(destination):
 
 class RemoteQueue(object):
     def __init__(self, destination, queue):
-        self.destination = destination
+        if isinstance(destination, basestring):
+            try:
+                self.destination = parse_ssh_destination(self.destination)
+            except ValueError as e:
+                logger.critical(e)
+                raise ValueError("Can't parse SSH destination %r" %
+                                 self.destination)
+        else:
+            if 'hostname' not in destination:
+                raise ValueError("destination dictionary is missing hostname")
+            self.destination = destination
         self.queue = PosixPath(queue)
         self.ssh = None
         self._connect()
@@ -86,20 +140,14 @@ class RemoteQueue(object):
     def _connect(self):
         """Connects via SSH.
         """
-        try:
-            self.parsed_destination = parse_ssh_destination(self.destination)
-        except ValueError as e:
-            logger.critical(e)
-            sys.exit(1)
-
         self.ssh = paramiko.SSHClient()
         self.ssh.load_system_host_keys()
         self.ssh.set_missing_host_key_policy(paramiko.RejectPolicy())
         logger.debug("Connecting with %s",
                      ', '.join('%s=%r' % i
-                               for i in iteritems(self.parsed_destination)))
-        self.ssh.connect(**self.parsed_destination)
-        logger.debug("Connected to %s", self.parsed_destination['hostname'])
+                               for i in iteritems(self.destination)))
+        self.ssh.connect(**self.destination)
+        logger.debug("Connected to %s", self.destination['hostname'])
 
     def _call(self, cmd, get_output):
         """Calls a command through the SSH connection.
@@ -125,6 +173,7 @@ class RemoteQueue(object):
                         data = chan.recv(1024)
                         if get_output:
                             output += data
+            output = output.rstrip(b'\r\n')
             return chan.recv_exit_status(), output
         finally:
             chan.close()
@@ -140,7 +189,6 @@ class RemoteQueue(object):
         """
         ret, output = self._call(cmd, True)
         assert ret == 0
-        output = output.rstrip(b'\r\n')
         logger.debug("Output: %r", output)
         return output
 
@@ -178,8 +226,8 @@ class RemoteQueue(object):
             new = queue.parent / answer[8:]
             logger.debug("Found link to %s, recursing", new)
             return self._resolve_queue(new, depth + 1)
-        logging.critical("Server returned %r" % answer)
-        sys.exit(1)
+        logging.critical("Server returned %r", answer)
+        raise RuntimeError("Remote command failed in unexpected way")
 
     def _get_queue(self):
         """Gets the actual location of the queue, or None.
@@ -187,7 +235,7 @@ class RemoteQueue(object):
         queue, depth = self._resolve_queue(self.queue)
         if queue is None and depth > 0:
             logger.critical("Queue link chain is broken")
-            sys.exit(1)
+            raise QueueLinkBroken
         logger.debug("get_queue = %s", queue)
         return queue
 
@@ -223,7 +271,7 @@ class RemoteQueue(object):
                 else:
                     logger.critical("Queue already exists\n"
                                     "Use --force to replace")
-                sys.exit(1)
+                raise QueueExists
 
         queue = self._setup()
 
@@ -235,7 +283,7 @@ class RemoteQueue(object):
     def _setup(self):
         """Actually installs the runtime.
         """
-        logger.debug("Installing runtime at %s", self.queue)
+        logger.info("Installing runtime at %s", self.queue)
 
         # Expands ~user in queue
         output = self.check_output('echo %s' % shell_escape(str(self.queue)))
@@ -267,23 +315,27 @@ class RemoteQueue(object):
 
         if job_id is None:
             job_id = '%s_%s_%s' % (Path(directory).unicodename,
-                                   self.parsed_destination['username'],
+                                   self.destination['username'],
                                    make_unique_name())
 
         if script is None:
             script = 'start.sh'
 
         # Create directory
-        target = self.check_output('%s %s' % (
-                                   queue / 'commands' / 'new_job',
-                                   job_id))
+        ret, target = self._call('%s %s' % (
+                                 queue / 'commands' / 'new_job',
+                                 job_id),
+                                 True)
+        if ret == 4:
+            raise JobAlreadyExists
         target = PosixPath(target)
         logger.debug("Server created directory %s", target)
 
         # Upload to directory
         scp_client = scp.SCPClient(self.ssh.get_transport())
-        for p in Path(directory).listdir():
-            scp_client.put(str(p), str(target), recursive=True)
+        scp_client.put([str(p) for p in Path(directory).listdir()],
+                       str(target),
+                       recursive=True)
         logger.debug("Files uploaded")
 
         # Submit job
@@ -299,7 +351,7 @@ class RemoteQueue(object):
 
         if queue is None:
             logger.critical("Queue doesn't exist on the server")
-            sys.exit(1)
+            raise QueueDoesntExist
 
         ret, output = self._call('%s %s' % (queue / 'commands' / 'status',
                                             job_id),
@@ -313,7 +365,8 @@ class RemoteQueue(object):
             print("not found")
         else:
             logger.error("Error!")
-            sys.exit(1)
+            raise RuntimeError("Remote script return unexpected error code "
+                               "%d" % ret)
 
     def download(self, job_id, files):
         # TODO : download
