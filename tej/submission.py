@@ -395,9 +395,42 @@ class RemoteQueue(object):
             raise RuntimeError("Remote script return unexpected error code "
                                "%d" % ret)
 
-    def download(self, job_id, files):
-        # TODO : download
-        raise NotImplementedError("download")
+    def download(self, job_id, files, **kwargs):
+        """Downloads files from server.
+        """
+        if not files:
+            return
+        if isinstance(files, basestring):
+            files = [files]
+        directory = False
+
+        if 'destination' in kwargs and 'directory' in kwargs:
+            raise TypeError("Only use one of 'destination' or 'directory'")
+        elif 'destination' in kwargs:
+            destination = Path(kwargs.pop('destination'))
+            if len(files) != 1:
+                raise ValueError("'destination' specified but multiple files "
+                                 "given; did you mean to use 'directory'?")
+        elif 'directory' in kwargs:
+            destination = Path(kwargs.pop('directory'))
+            directory = True
+        if kwargs:
+            raise TypeError("Got unexpected keyword arguments")
+
+        # Might raise JobNotFound
+        status, target, result = self.status(job_id)
+
+        scp_client = scp.SCPClient(self.ssh.get_transport())
+        for filename in files:
+            logger.info("Downloading %s" % (target / filename))
+            if directory:
+                scp_client.get(str(target / filename),
+                               str(destination / filename),
+                               recursive=True)
+            else:
+                scp_client.get(str(target / filename),
+                               str(destination),
+                               recursive=True)
 
     def kill(self, job_id):
         # TODO : kill

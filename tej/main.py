@@ -43,7 +43,8 @@ def _status(args):
 
 
 def _download(args):
-    RemoteQueue(args.destination, args.queue).download(args.id, args.files)
+    RemoteQueue(args.destination, args.queue).download(args.id, args.files,
+                                                       destination='.')
 
 
 def _kill(args):
@@ -147,7 +148,7 @@ def main():
             help="Downloads files from finished job")
     parser_download.add_argument('--id', action='store',
                                  help="Identifier of the job")
-    parser_download.add_argument('file', action='store',
+    parser_download.add_argument('files', action='store',
                                  nargs=argparse.ONE_OR_MORE,
                                  help="Files to download")
     parser_download.set_defaults(func=_download)
