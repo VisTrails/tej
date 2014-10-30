@@ -2,9 +2,14 @@ from __future__ import absolute_import, division
 
 import tej
 
+from vistrails.core.modules.config import ModuleSettings
 from vistrails.core.modules.vistrails_module import Module, ModuleError, \
     ModuleSuspended
 from vistrails.core.vistrail.job import JobMixin
+
+
+assert __path__.endswith('.init')
+this_pkg = __path__[:-5]
 
 
 class QueueCache(object):
@@ -77,6 +82,7 @@ class Job(Module):
     You probably won't use this module directly since it references a
     pre-existing job by name.
     """
+    _settings = ModuleSettings(abstract=True)
     _input_ports = [('id', '(basic:String)'),
                     ('queue', Queue)]
     _output_ports = [('job', '(org.vistrails.extra.tej:Job)'),
@@ -97,7 +103,7 @@ class Job(Module):
 
         if status == tej.RemoteQueue.JOB_DONE:
             self.set_output('job', job)
-            self.set_output('exitcode', arg)
+            self.set_output('exitcode', int(arg))
         elif status == tej.RemoteQueue.JOB_RUNNING:
             raise ModuleSuspended(self, "Remote job is running",
                                   monitor=job)
@@ -105,17 +111,14 @@ class Job(Module):
             raise ModuleError(self, "Invalid job status %r" % status)
 
 
-class SubmitJob(JobMixin, Job):
+class BaseSubmitJob(JobMixin, Job):
     """Starts a job on a server.
 
     Thanks to the suspension/job tracking mechanism, this module does much more
     than start a job. If the job is running, it will suspend again. If the job
     is finished, you can obtain files from it.
     """
-    _input_ports = [('job', '(basic:Directory)'),
-                    ('script', '(basic:String)',
-                     {'optional': True, 'defaults': "['start.sh']"}),
-                    ('id', '(basic:String)',
+    _input_ports = [('id', '(basic:String)',
                      {'optional': True})]
 
     def make_id(self):
@@ -144,12 +147,10 @@ class SubmitJob(JobMixin, Job):
 
     def job_start(self, params):
         """Submits a job.
+
+        Reimplement in subclasses to actually submit a job.
         """
-        queue = QueueCache.get(params['destination'], params['queue'])
-        queue.submit(self.job_id(params),
-                     self.get_input('directory'),
-                     self.get_input('script'))
-        return params
+        raise NotImplementedError
 
     def job_get_monitor(self, params):
         """Gets a RemoteJob object to monitor a runnning job.
@@ -175,4 +176,21 @@ class SubmitJob(JobMixin, Job):
         self.set_output('job', RemoteJob(queue, self.job_id(params)))
 
 
-_modules = [Queue, Job, SubmitJob]
+class SubmitJob(BaseSubmitJob):
+    """Submits a generic job (a directory).
+    """
+    _input_ports = [('job', '(basic:Directory)'),
+                    ('script', '(basic:String)',
+                     {'optional': True, 'defaults': "['start.sh']"})]
+
+    def job_start(self, params):
+        """Sends the directory and submits the job.
+        """
+        queue = QueueCache.get(params['destination'], params['queue'])
+        queue.submit(self.job_id(params),
+                     self.get_input('directory'),
+                     self.get_input('script'))
+        return params
+
+
+_modules = [Queue, Job, BaseSubmitJob, SubmitJob]
