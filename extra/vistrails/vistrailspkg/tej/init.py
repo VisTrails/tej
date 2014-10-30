@@ -54,8 +54,10 @@ class Queue(Module):
             destination = {'hostname': destination,
                            'username': self.get_input('username'),
                            'port': self.get_input('port')}
+
+        destination_str = tej.destination_as_string(destination)
         queue = self.get_input('queue')
-        self.set_output('queue', QueueCache.get(destination, queue))
+        self.set_output('queue', QueueCache.get(destination_str, queue))
 
 
 class RemoteJob(object):
@@ -141,7 +143,7 @@ class BaseSubmitJob(JobMixin, Job):
     def job_id(self, params):
         """Returns the job identifier that was provided, or calls make_id().
         """
-        if 'job_id' not in params:
+        if params.get('job_id') is None:
             params['job_id'] = self.make_id()
         return RemoteJob.monitor_id(params)
 
@@ -163,7 +165,7 @@ class BaseSubmitJob(JobMixin, Job):
         """Gets a RemoteJob object to monitor a runnning job.
         """
         queue = QueueCache.get(params['destination'], params['queue'])
-        return RemoteJob(queue, self.job_id(params))
+        return RemoteJob(queue, params['job_id'])
 
     def job_finish(self, params):
         """Finishes job.
@@ -181,7 +183,7 @@ class BaseSubmitJob(JobMixin, Job):
         """
         queue = QueueCache.get(params['destination'], params['queue'])
         self.set_output('exitcode', params['exitcode'])
-        self.set_output('job', RemoteJob(queue, self.job_id(params)))
+        self.set_output('job', RemoteJob(queue, params['job_id']))
 
 
 class SubmitJob(BaseSubmitJob):
@@ -195,8 +197,8 @@ class SubmitJob(BaseSubmitJob):
         """Sends the directory and submits the job.
         """
         queue = QueueCache.get(params['destination'], params['queue'])
-        queue.submit(self.job_id(params),
-                     self.get_input('directory'),
+        queue.submit(params['job_id'],
+                     self.get_input('job').name,
                      self.get_input('script'))
         return params
 
@@ -219,7 +221,7 @@ class SubmitShellJob(BaseSubmitJob):
             fp.write(self.get_input('source'))
 
         queue = QueueCache.get(params['destination'], params['queue'])
-        queue.submit(self.job_id(params), directory)
+        queue.submit(params['job_id'], directory)
         return params
 
     def job_set_results(self, params):
