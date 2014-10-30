@@ -28,7 +28,8 @@ def _status(args):
         logging.critical("Missing job identifier")
         sys.exit(1)
     try:
-        status, arg = RemoteQueue(args.destination, args.queue).status(args.id)
+        queue = RemoteQueue(args.destination, args.queue)
+        status, directory, arg = queue.status(args.id)
         if status == RemoteQueue.JOB_DONE:
             print("done")
         elif status == RemoteQueue.JOB_RUNNING:

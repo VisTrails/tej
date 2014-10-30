@@ -42,9 +42,13 @@ echo "status=$status arg=$arg" >> tej.log
 if [ "$status" = running ]; then
     echo "Job is still running" >&2
     echo "Job is still running" >> tej.log
+    cd "$job_root/stage"
+    pwd
     exit 2
 else
     echo -n "Job finished with code " >&2
+    cd "$job_root/stage"
+    pwd
     echo $arg
     exit 0
 fi
