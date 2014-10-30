@@ -233,4 +233,49 @@ class SubmitShellJob(BaseSubmitJob):
                         PathObject(os.path.join(temp_dir, '_stdout.txt')))
 
 
-_modules = [Queue, Job, BaseSubmitJob, SubmitJob, SubmitShellJob]
+class DownloadFile(Module):
+    """Downloads a file from a remote job.
+    """
+    _input_ports = [('job', Job),
+                    ('filename', '(basic:String)')]
+    _output_ports = [('file', '(basic:File)')]
+
+    def compute(self):
+        job = self.get_input('job')
+        assert isinstance(job, RemoteJob)
+
+        destination = self.interpreter.filePool.create_file(
+                prefix='vt_tmp_shelljobout_')
+        job.queue.download(job.job_id,
+                           self.get_input('filename'),
+                           destination=destination.name,
+                           recursive=False)
+
+        self.set_output('file', destination)
+
+
+class DownloadDirectory(Module):
+    """Downloads a directory from a remote job.
+    """
+    _input_ports = [('job', Job),
+                    ('pathname', '(basic:String)')]
+    _output_ports = [('directory', '(basic:Directory)')]
+
+    def compute(self):
+        job = self.get_input('job')
+        assert isinstance(job, RemoteJob)
+
+        destination = self.interpreter.filePool.create_directory(
+                prefix='vt_tmp_shelljobout_').name
+        target = os.path.join(destination, 'dir')
+        job.queue.download(job.job_id,
+                           self.get_input('pathname'),
+                           destination=target,
+                           recursive=True)
+
+        self.set_output('directory', PathObject(target))
+
+
+_modules = [Queue,
+            Job, BaseSubmitJob, SubmitJob, SubmitShellJob,
+            DownloadFile, DownloadDirectory]
