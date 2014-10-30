@@ -74,7 +74,7 @@ class RemoteJob(object):
 
     def get_monitor_id(self):
         return self.monitor_id({'destination': self.queue.destination_string,
-                                'queue': self.queue.queue,
+                                'queue': str(self.queue.queue),
                                 'job_id': self.job_id})
 
     def finished(self):
@@ -151,7 +151,7 @@ class BaseSubmitJob(JobMixin, Job):
         """Reads the input ports.
         """
         return {'destination': self.get_input('queue').destination_string,
-                'queue': self.get_input('queue').queue,
+                'queue': str(self.get_input('queue').queue),
                 'job_id': self.get_input('id')}
 
     def job_start(self, params):
