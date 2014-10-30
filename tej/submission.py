@@ -74,6 +74,12 @@ class JobNotFound(ConfigurationError):
 logger = logging.getLogger('tej')
 
 
+if hasattr(sys.stderr, 'buffer') and hasattr(sys.stderr.buffer, 'write'):
+    stderr_bytes = sys.stderr.buffer
+else:
+    stderr_bytes = sys.stderr
+
+
 def unique_names():
     """Generates unique sequences of bytes.
     """
@@ -197,8 +203,8 @@ class RemoteQueue(object):
                     if chan.recv_stderr_ready():
                         data = chan.recv_stderr(1024)
                         if data:
-                            sys.stderr.buffer.write(data)
-                            sys.stderr.flush()
+                            stderr_bytes.write(data)
+                            stderr_bytes.flush()
                     if chan.recv_ready():
                         data = chan.recv(1024)
                         if get_output:
