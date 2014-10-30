@@ -75,6 +75,10 @@ class RemoteJob(object):
                                 'queue': self.queue.queue,
                                 'job_id': self.job_id})
 
+    def finished(self):
+        status, target, arg = self.queue.status(self.job_id)
+        return status == tej.RemoteQueue.JOB_DONE
+
 
 class Job(Module):
     """A reference to a job in a queue.
@@ -85,7 +89,6 @@ class Job(Module):
     You probably won't use this module directly since it references a
     pre-existing job by name.
     """
-    _settings = ModuleSettings(abstract=True)
     _input_ports = [('id', '(basic:String)'),
                     ('queue', Queue)]
     _output_ports = [('job', '(org.vistrails.extra.tej:Job)'),
@@ -121,6 +124,7 @@ class BaseSubmitJob(JobMixin, Job):
     than start a job. If the job is running, it will suspend again. If the job
     is finished, you can obtain files from it.
     """
+    _settings = ModuleSettings(abstract=True)
     _input_ports = [('id', '(basic:String)',
                      {'optional': True})]
 
@@ -170,6 +174,7 @@ class BaseSubmitJob(JobMixin, Job):
         status, target, arg = queue.status(params['job_id'])
         assert status == tej.RemoteQueue.JOB_DONE
         params['exitcode'] = int(arg)
+        return params
 
     def job_set_results(self, params):
         """Sets the output ports once the job is finished.
