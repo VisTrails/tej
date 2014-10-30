@@ -403,6 +403,7 @@ class RemoteQueue(object):
         if isinstance(files, basestring):
             files = [files]
         directory = False
+        recursive = kwargs.pop('recursive', True)
 
         if 'destination' in kwargs and 'directory' in kwargs:
             raise TypeError("Only use one of 'destination' or 'directory'")
@@ -426,11 +427,11 @@ class RemoteQueue(object):
             if directory:
                 scp_client.get(str(target / filename),
                                str(destination / filename),
-                               recursive=True)
+                               recursive=recursive)
             else:
                 scp_client.get(str(target / filename),
                                str(destination),
-                               recursive=True)
+                               recursive=recursive)
 
     def kill(self, job_id):
         # TODO : kill
