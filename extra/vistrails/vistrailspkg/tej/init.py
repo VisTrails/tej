@@ -97,7 +97,7 @@ class Job(Module):
 
         # Check job status
         try:
-            status, arg = queue.status(job_id)
+            status, target, arg = queue.status(job_id)
         except tej.JobNotFound:
             raise ModuleError(self, "Job not found")
 
@@ -167,7 +167,7 @@ class BaseSubmitJob(JobMixin, Job):
         Gets the exit code from the server.
         """
         queue = QueueCache.get(params['destination'], params['queue'])
-        status, arg = queue.status(params['job_id'])
+        status, target, arg = queue.status(params['job_id'])
         assert status == tej.RemoteQueue.JOB_DONE
         params['exitcode'] = int(arg)
 
