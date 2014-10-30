@@ -354,6 +354,8 @@ class RemoteQueue(object):
                                  True)
         if ret == 4:
             raise JobAlreadyExists
+        elif ret != 0:
+            raise JobNotFound("Couldn't create job")
         target = PosixPath(target)
         logger.debug("Server created directory %s", target)
 
