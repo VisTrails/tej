@@ -40,3 +40,11 @@ umask 022
 
 # Starts the server
 /usr/sbin/sshd -f config -h key_rsa -h key_dsa -p 10022
+
+# Sets up the client
+umask 077
+mkdir ~/.ssh
+rm -f ~/.ssh/known_hosts
+ssh-keyscan -p 10022 -t rsa 127.0.0.1 >> ~/.ssh/known_hosts
+cat ~/.ssh/known_hosts
+cp client/id_rsa ~/.ssh/id_rsa
