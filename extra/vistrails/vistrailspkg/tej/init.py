@@ -1,6 +1,8 @@
 from __future__ import absolute_import, division
 
+import io
 import os
+import urllib
 
 import tej
 
@@ -212,13 +214,29 @@ class SubmitShellJob(BaseSubmitJob):
     _output_ports = [('stderr', '(basic:File)'),
                      ('stdout', '(basic:File)')]
 
+    _job_interpreter = '/bin/sh'
+
     def job_start(self, params):
         """Creates a temporary job with the given source, upload and submit it.
         """
         directory = self.interpreter.filePool.create_directory(
                 prefix='vt_tmp_shelljob_').name
-        with open(os.path.join(directory, 'start.sh'), 'w') as fp:
-            fp.write(self.get_input('source'))
+        # We use io.open() here because we could be writing scripts on Windows
+        # before uploading them to a POSIX server
+        source = urllib.unquote(self.get_input('source'))
+        if isinstance(source, bytes):
+            kwargs = {'mode': 'wb'}
+        else:
+            kwargs = {'mode': 'w', 'newline': '\n'}
+        with io.open(os.path.join(directory, 'vistrails_source.sh'),
+                     **kwargs) as fp:
+            fp.write(source)
+        with io.open(os.path.join(directory, 'start.sh'), 'w',
+                     newline='\n') as fp:
+            fp.write(u'%s '
+                     u'vistrails_source.sh '
+                     u'>_stdout.txt '
+                     u'2>_stderr.txt\n' % self._job_interpreter)
 
         queue = QueueCache.get(params['destination'], params['queue'])
         queue.submit(params['job_id'], directory)
