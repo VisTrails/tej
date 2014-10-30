@@ -1,7 +1,10 @@
 from __future__ import absolute_import, division
 
+import os
+
 import tej
 
+from vistrails.core.modules.basic_modules import PathObject
 from vistrails.core.modules.config import ModuleSettings
 from vistrails.core.modules.vistrails_module import Module, ModuleError, \
     ModuleSuspended
@@ -193,4 +196,41 @@ class SubmitJob(BaseSubmitJob):
         return params
 
 
-_modules = [Queue, Job, BaseSubmitJob, SubmitJob]
+class SubmitShellJob(BaseSubmitJob):
+    """Submits a shell script.
+    """
+    #_settings = ModuleSettings(configure_widget=(
+    #        '%s.widgets' % this_pkg, 'ShellSourceConfigurationWidget'))
+    _input_ports = [('source', '(basic:String)')]
+    _output_ports = [('stderr', '(basic:File)'),
+                     ('stdout', '(basic:File)')]
+
+    def job_start(self, params):
+        """Creates a temporary job with the given source, upload and submit it.
+        """
+        directory = self.interpreter.filePool.create_directory(
+                prefix='vt_tmp_shelljob_').name
+        with open(os.path.join(directory, 'start.sh'), 'w') as fp:
+            fp.write(self.get_input('source'))
+
+        queue = QueueCache.get(params['destination'], params['queue'])
+        queue.submit(self.job_id(params), directory)
+        return params
+
+    def job_set_results(self, params):
+        """Gets stderr and stdout.
+        """
+        super(SubmitShellJob, self).job_set_results(params)
+
+        temp_dir = self.interpreter.filePool.create_directory(
+                prefix='vt_tmp_shelljobout_').name
+        queue = QueueCache.get(params['destination'], params['queue'])
+        queue.download(params['job_id'], ['_stderr.txt', '_stdout.txt'],
+                       directory=temp_dir)
+        self.set_output('stderr',
+                        PathObject(os.path.join(temp_dir, '_stderr.txt')))
+        self.set_output('stdout',
+                        PathObject(os.path.join(temp_dir, '_stdout.txt')))
+
+
+_modules = [Queue, Job, BaseSubmitJob, SubmitJob, SubmitShellJob]
