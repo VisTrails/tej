@@ -12,7 +12,7 @@ import select
 import string
 import sys
 
-from tej.utils import iteritems, irange
+from tej.utils import string_types, iteritems, irange
 
 
 __all__ = ['DEFAULT_TEJ_DIR',
@@ -154,7 +154,7 @@ class RemoteQueue(object):
     JOB_RUNNING = 2
 
     def __init__(self, destination, queue):
-        if isinstance(destination, basestring):
+        if isinstance(destination, string_types):
             try:
                 self.destination = parse_ssh_destination(destination)
             except ValueError as e:
@@ -412,7 +412,7 @@ class RemoteQueue(object):
         """
         if not files:
             return
-        if isinstance(files, basestring):
+        if isinstance(files, string_types):
             files = [files]
         directory = False
         recursive = kwargs.pop('recursive', True)

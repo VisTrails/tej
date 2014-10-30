@@ -10,21 +10,19 @@ PY3 = sys.version_info[0] == 3
 
 
 if PY3:
+    unicode_ = str
+    string_types = (str,)
     izip = zip
     irange = range
     iteritems = dict.items
     itervalues = dict.values
     listvalues = lambda d: list(d.values())
 else:
+    unicode_ = unicode
+    string_types = (str, unicode)
     import itertools
     izip = itertools.izip
     irange = xrange
     iteritems = dict.iteritems
     itervalues = dict.itervalues
     listvalues = dict.values
-
-
-if PY3:
-    unicode_ = str
-else:
-    unicode_ = unicode
