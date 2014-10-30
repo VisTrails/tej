@@ -18,7 +18,7 @@ from tej.utils import iteritems, irange
 __all__ = ['DEFAULT_TEJ_DIR',
            'ConfigurationError', 'QueueDoesntExist', 'QueueLinkBroken',
            'QueueExists', 'JobAlreadyExists', 'JobNotFound',
-           'parse_ssh_destination', 'RemoteQueue']
+           'parse_ssh_destination', 'destination_as_string', 'RemoteQueue']
 
 
 DEFAULT_TEJ_DIR = '~/.tej'
@@ -72,6 +72,12 @@ class JobNotFound(ConfigurationError):
 
 
 logger = logging.getLogger('tej')
+
+
+if hasattr(sys.stderr, 'buffer') and hasattr(sys.stderr.buffer, 'write'):
+    stderr_bytes = sys.stderr.buffer
+else:
+    stderr_bytes = sys.stderr
 
 
 def unique_names():
@@ -133,6 +139,16 @@ def parse_ssh_destination(destination):
     return info
 
 
+def destination_as_string(destination):
+    if destination.get('port', 22) != 22:
+        return 'ssh://%s@%s:%d' % (destination['username'],
+                                   destination['hostname'],
+                                   destination['port'])
+    else:
+        return 'ssh://%s@%s' % (destination['username'],
+                                destination['hostname'])
+
+
 class RemoteQueue(object):
     JOB_DONE = 0
     JOB_RUNNING = 2
@@ -155,13 +171,7 @@ class RemoteQueue(object):
 
     @property
     def destination_string(self):
-        if self.destination.get('port', 22) != 22:
-            return 'ssh://%s@%s:%d' % (self.destination['username'],
-                                       self.destination['hostname'],
-                                       self.destination['port'])
-        else:
-            return 'ssh://%s@%s' % (self.destination['username'],
-                                    self.destination['hostname'])
+        return destination_as_string(self.destination)
 
     def _connect(self):
         """Connects via SSH.
@@ -193,8 +203,8 @@ class RemoteQueue(object):
                     if chan.recv_stderr_ready():
                         data = chan.recv_stderr(1024)
                         if data:
-                            sys.stderr.buffer.write(data)
-                            sys.stderr.flush()
+                            stderr_bytes.write(data)
+                            stderr_bytes.flush()
                     if chan.recv_ready():
                         data = chan.recv(1024)
                         if get_output:
@@ -354,6 +364,8 @@ class RemoteQueue(object):
                                  True)
         if ret == 4:
             raise JobAlreadyExists
+        elif ret != 0:
+            raise JobNotFound("Couldn't create job")
         target = PosixPath(target)
         logger.debug("Server created directory %s", target)
 

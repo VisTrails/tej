@@ -25,9 +25,14 @@ cd "$(dirname $0)/.."
 # Creates directories
 job_root="jobs/$job_id"
 if ! mkdir "$job_root" 2>/dev/null; then
-    echo "Job already exists!" >&2
-    echo "Job already exists!" >> tej.log
-    exit 4
+    if [ -d "$job_root" ]; then
+        echo "Job already exists!" >&2
+        echo "Job already exists!" >> tej.log
+        exit 4
+    else
+        echo "Couldn't create job directory" >&2
+        exit 1
+    fi
 fi
 job_dir="$job_root/stage"
 mkdir "$job_dir"
