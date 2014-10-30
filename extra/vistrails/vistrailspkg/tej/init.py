@@ -1,12 +1,28 @@
 from __future__ import absolute_import, division
 
-from collections import namedtuple
-
 import tej
 
 from vistrails.core.modules.vistrails_module import Module, ModuleError, \
     ModuleSuspended
 from vistrails.core.vistrail.job import JobMixin
+
+
+class QueueCache(object):
+    """A global cache of RemoteQueue objects.
+    """
+    def __init__(self):
+        self._cache = {}
+
+    def get(self, destination, queue):
+        key = destination, queue
+        if key in self._cache:
+            return self._cache[key]
+        else:
+            queue = tej.RemoteQueue(destination, queue)
+            self._cache[key] = queue
+            return queue
+
+QueueCache = QueueCache()
 
 
 class Queue(Module):
@@ -31,7 +47,7 @@ class Queue(Module):
                            'username': self.get_input('username'),
                            'port': self.get_input('port')}
         queue = self.get_input('queue')
-        self.set_output('queue', tej.RemoteQueue(destination, queue))
+        self.set_output('queue', QueueCache.get(destination, queue))
 
 
 class RemoteJob(object):
@@ -39,11 +55,17 @@ class RemoteJob(object):
         self.queue = queue
         self.job_id = job_id
 
-    def get_monitor_id(self):
+    @staticmethod
+    def monitor_id(params):
         # Identifier for the JobMonitor
-        return '%s/%s/%s' % (self.queue.destination_string,
-                             self.queue.queue,
-                             self.job_id)
+        return '%s/%s/%s' % (params['destination'],
+                             params['queue'],
+                             params['job_id'])
+
+    def get_monitor_id(self):
+        return self.monitor_id({'destination': self.queue.destination_string,
+                                'queue': self.queue.queue,
+                                'job_id': self.job_id})
 
 
 class Job(Module):
@@ -60,8 +82,6 @@ class Job(Module):
     _output_ports = [('job', '(org.vistrails.extra.tej:Job)'),
                      ('exitcode', '(basic:Integer)')]
 
-    job = None
-
     def compute(self):
         queue = self.get_input('queue')
         job_id = self.get_input('id')
@@ -73,14 +93,14 @@ class Job(Module):
             raise ModuleError(self, "Job not found")
 
         # Create job object
-        self.job = RemoteJob(queue=queue, job_id=job_id)
+        job = RemoteJob(queue=queue, job_id=job_id)
 
         if status == tej.RemoteQueue.JOB_DONE:
-            self.set_output('job', self.job)
+            self.set_output('job', job)
             self.set_output('exitcode', arg)
         elif status == tej.RemoteQueue.JOB_RUNNING:
             raise ModuleSuspended(self, "Remote job is running",
-                                  monitor=self.job)
+                                  monitor=job)
         else:
             raise ModuleError(self, "Invalid job status %r" % status)
 
@@ -98,21 +118,61 @@ class SubmitJob(JobMixin, Job):
                     ('id', '(basic:String)',
                      {'optional': True})]
 
+    def make_id(self):
+        """Makes a default identifier, using the pipeline signature.
+
+        Unused if we have an explicit identifier.
+        """
+        if not hasattr(self, 'signature'):
+            raise ModuleError(self,
+                              "No explicit job ID and module has no signature")
+        return "vistrails_module_%s" % self.signature
+
     def job_id(self, params):
-        return self.job.get_monitor_id()
+        """Returns the job identifier that was provided, or calls make_id().
+        """
+        if 'job_id' not in params:
+            params['job_id'] = self.make_id()
+        return RemoteJob.monitor_id(params)
 
     def job_read_inputs(self):
+        """Reads the input ports.
+        """
         return {'destination': self.get_input('queue').destination_string,
                 'queue': self.get_input('queue').queue,
                 'job_id': self.get_input('id')}
 
     def job_start(self, params):
-        queue = tej.RemoteQueue(params['destination'], params['queue'])
-        queue.submit(params['job_id'], self.get_input('directory'))
+        """Submits a job.
+        """
+        queue = QueueCache.get(params['destination'], params['queue'])
+        queue.submit(self.job_id(params),
+                     self.get_input('directory'),
+                     self.get_input('script'))
         return params
 
     def job_get_monitor(self, params):
-        return self.job
+        """Gets a RemoteJob object to monitor a runnning job.
+        """
+        queue = QueueCache.get(params['destination'], params['queue'])
+        return RemoteJob(queue, self.job_id(params))
+
+    def job_finish(self, params):
+        """Finishes job.
+
+        Gets the exit code from the server.
+        """
+        queue = QueueCache.get(params['destination'], params['queue'])
+        status, arg = queue.status(params['job_id'])
+        assert status == tej.RemoteQueue.JOB_DONE
+        params['exitcode'] = int(arg)
+
+    def job_set_results(self, params):
+        """Sets the output ports once the job is finished.
+        """
+        queue = QueueCache.get(params['destination'], params['queue'])
+        self.set_output('exitcode', params['exitcode'])
+        self.set_output('job', RemoteJob(queue, self.job_id(params)))
 
 
 _modules = [Queue, Job, SubmitJob]
