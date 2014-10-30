@@ -11,8 +11,8 @@ from vistrails.core.modules.vistrails_module import Module, ModuleError, \
 from vistrails.core.vistrail.job import JobMixin
 
 
-assert __path__.endswith('.init')
-this_pkg = __path__[:-5]
+assert __name__.endswith('.init')
+this_pkg = __name__[:-5]
 
 
 class QueueCache(object):
@@ -206,8 +206,8 @@ class SubmitJob(BaseSubmitJob):
 class SubmitShellJob(BaseSubmitJob):
     """Submits a shell script.
     """
-    #_settings = ModuleSettings(configure_widget=(
-    #        '%s.widgets' % this_pkg, 'ShellSourceConfigurationWidget'))
+    _settings = ModuleSettings(configure_widget=(
+            '%s.widgets' % this_pkg, 'ShellSourceConfigurationWidget'))
     _input_ports = [('source', '(basic:String)')]
     _output_ports = [('stderr', '(basic:File)'),
                      ('stdout', '(basic:File)')]
