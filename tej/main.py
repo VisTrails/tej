@@ -10,8 +10,24 @@ import logging
 import sys
 
 from tej import __version__ as tej_version
-from tej.submission import DEFAULT_TEJ_DIR, ConfigurationError, JobNotFound, \
-    RemoteQueue
+from tej.submission import DEFAULT_TEJ_DIR, Error, JobNotFound, RemoteQueue
+
+
+logger = logging.getLogger('tej')
+
+
+def setup_logging(verbosity):
+    levels = [logging.CRITICAL, logging.WARNING, logging.INFO, logging.DEBUG]
+    level = levels[min(verbosity, 3)]
+
+    fmt = "%(asctime)s %(levelname)s: %(message)s"
+    formatter = logging.Formatter(fmt)
+
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+
+    logging.getLogger().addHandler(handler)
+    logger.setLevel(level)
 
 
 def _setup(args):
@@ -25,7 +41,7 @@ def _submit(args):
 
 def _status(args):
     if args.id is None:
-        logging.critical("Missing job identifier")
+        logger.critical("Missing job identifier")
         sys.exit(1)
     try:
         queue = RemoteQueue(args.destination, args.queue)
@@ -53,20 +69,6 @@ def _kill(args):
 
 def _delete(args):
     RemoteQueue(args.destination, args.queue).delete(args.id)
-
-
-def setup_logging(verbosity):
-    levels = [logging.CRITICAL, logging.WARNING, logging.INFO, logging.DEBUG]
-    level = levels[min(verbosity, 3)]
-
-    fmt = "%(asctime)s %(levelname)s: %(message)s"
-    formatter = logging.Formatter(fmt)
-
-    handler = logging.StreamHandler()
-    handler.setFormatter(formatter)
-
-    logging.getLogger().addHandler(handler)
-    logging.getLogger('tej').setLevel(level)
 
 
 def main():
@@ -174,9 +176,9 @@ def main():
 
     try:
         args.func(args)
-    except ConfigurationError:
+    except Error as e:
         # No need to show a traceback here, this is not an internal error
-        # Useful information has already been printed on the logger
+        logger.critical(e)
         sys.exit(1)
     sys.exit(0)
 

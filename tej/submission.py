@@ -16,8 +16,8 @@ from tej.utils import string_types, iteritems, irange
 
 
 __all__ = ['DEFAULT_TEJ_DIR',
-           'ConfigurationError', 'QueueDoesntExist', 'QueueLinkBroken',
-           'QueueExists', 'JobAlreadyExists', 'JobNotFound',
+           'Error', 'InvalidDestionation', 'QueueDoesntExist',
+           'QueueLinkBroken', 'QueueExists', 'JobAlreadyExists', 'JobNotFound',
            'JobStillRunning'
            'parse_ssh_destination', 'destination_as_string', 'RemoteQueue']
 
@@ -25,12 +25,19 @@ __all__ = ['DEFAULT_TEJ_DIR',
 DEFAULT_TEJ_DIR = '~/.tej'
 
 
-class ConfigurationError(Exception):
-    """Error in the way the server is set up or the client was called.
+class Error(Exception):
+    """Base class for exceptions.
     """
 
 
-class QueueDoesntExist(ConfigurationError):
+class InvalidDestionation(Error):
+    """Invalid SSH destination.
+    """
+    def __init__(self, msg="Invalid destination"):
+        super(InvalidDestionation, self).__init__(msg)
+
+
+class QueueDoesntExist(Error):
     """Queue doesn't exist on the server.
 
     `submit` and `setup` will create a queue on the server, but other commands
@@ -49,7 +56,7 @@ class QueueLinkBroken(QueueDoesntExist):
         super(QueueLinkBroken, self).__init__(msg)
 
 
-class QueueExists(ConfigurationError):
+class QueueExists(Error):
     """The queue whose creation was requested already exists.
 
     A `force` argument (``--force``) is provided to replace it anyway.
@@ -58,21 +65,21 @@ class QueueExists(ConfigurationError):
         super(QueueExists, self).__init__(msg)
 
 
-class JobAlreadyExists(ConfigurationError):
+class JobAlreadyExists(Error):
     """A job with this name already exists on the server; submission failed.
     """
     def __init__(self, msg="Job already exists"):
         super(JobAlreadyExists, self).__init__(msg)
 
 
-class JobNotFound(ConfigurationError):
+class JobNotFound(Error):
     """A job with this name wasn't found on the server.
     """
     def __init__(self, msg="Job not found"):
         super(JobNotFound, self).__init__(msg)
 
 
-class JobStillRunning(ConfigurationError):
+class JobStillRunning(Error):
     """An operation failed because the target job is still running.
     """
     def __init__(self, msg="Job is still running"):
@@ -133,7 +140,7 @@ def parse_ssh_destination(destination):
     """
     match = _re_ssh.match(destination)
     if not match:
-        raise ValueError("Invalid destination: %s" % destination)
+        raise InvalidDestionation("Invalid destination: %s" % destination)
     user, host, port = match.groups()
     info = {}
     if user:
@@ -166,12 +173,12 @@ class RemoteQueue(object):
             try:
                 self.destination = parse_ssh_destination(destination)
             except ValueError as e:
-                logger.critical(e)
-                raise ValueError("Can't parse SSH destination %r" %
-                                 self.destination)
+                raise InvalidDestionation("Can't parse SSH destination %s" %
+                                          destination)
         else:
             if 'hostname' not in destination:
-                raise ValueError("destination dictionary is missing hostname")
+                raise InvalidDestionation("destination dictionary is missing "
+                                          "hostname")
             self.destination = destination
         self.queue = PosixPath(queue)
         self.ssh = None
@@ -270,7 +277,7 @@ class RemoteQueue(object):
             new = queue.parent / answer[8:]
             logger.debug("Found link to %s, recursing", new)
             return self._resolve_queue(new, depth + 1)
-        logging.critical("Server returned %r", answer)
+        logger.debug("Server returned %r", answer)
         raise RuntimeError("Remote command failed in unexpected way")
 
     def _get_queue(self):
@@ -278,7 +285,6 @@ class RemoteQueue(object):
         """
         queue, depth = self._resolve_queue(self.queue)
         if queue is None and depth > 0:
-            logger.critical("Queue link chain is broken")
             raise QueueLinkBroken
         logger.debug("get_queue = %s", queue)
         return queue
@@ -307,15 +313,14 @@ class RemoteQueue(object):
                 self.check_call('rm -Rf %s' % shell_escape(str(self.queue)))
             else:
                 if queue is not None and depth > 0:
-                    logger.critical("Queue already exists (links to %s)\n"
-                                    "Use --force to replace", queue)
+                    raise QueueExists("Queue already exists (links to %s)\n"
+                                      "Use --force to replace" % queue)
                 elif depth > 0:
-                    logger.critical("Broken link exists\n"
-                                    "Use --force to replace")
+                    raise QueueExists("Broken link exists\n"
+                                      "Use --force to replace")
                 else:
-                    logger.critical("Queue already exists\n"
-                                    "Use --force to replace")
-                raise QueueExists
+                    raise QueueExists("Queue already exists\n"
+                                      "Use --force to replace")
 
         queue = self._setup()
 
@@ -394,7 +399,6 @@ class RemoteQueue(object):
         """
         queue = self._get_queue()
         if queue is None:
-            logger.critical("Queue doesn't exist on the server")
             raise QueueDoesntExist
 
         ret, output = self._call('%s %s' % (queue / 'commands' / 'status',
@@ -409,7 +413,6 @@ class RemoteQueue(object):
         elif ret == 3:
             raise JobNotFound
         else:
-            logger.error("Error!")
             raise RuntimeError("Remote script returned unexpected error code "
                                "%d" % ret)
 
@@ -441,7 +444,7 @@ class RemoteQueue(object):
 
         scp_client = scp.SCPClient(self.ssh.get_transport())
         for filename in files:
-            logger.info("Downloading %s" % (target / filename))
+            logger.info("Downloading %s", target / filename)
             if directory:
                 scp_client.get(str(target / filename),
                                str(destination / filename),
@@ -456,17 +459,14 @@ class RemoteQueue(object):
         """
         queue = self._get_queue()
         if queue is None:
-            logger.critical("Queue doesn't exist on the server")
             raise QueueDoesntExist
 
         ret, output = self._call('%s %s' % (queue / 'commands' / 'kill',
                                             job_id),
                                  False)
         if ret == 3:
-            logger.critical("No such job")
             raise JobNotFound
         elif ret != 0:
-            logger.critical("Error!")
             raise RuntimeError("Remote script returned unexpected error code "
                                "%d" % ret)
 
@@ -475,20 +475,16 @@ class RemoteQueue(object):
         """
         queue = self._get_queue()
         if queue is None:
-            logger.critical("Queue doesn't exist on the server")
             raise QueueDoesntExist
 
         ret, output = self._call('%s %s' % (queue / 'commands' / 'delete',
                                             job_id),
                                  False)
         if ret == 3:
-            logger.critical("No such job")
             raise JobNotFound
         elif ret == 2:
-            logger.critical("Job is still running!")
             raise JobStillRunning
         elif ret != 0:
-            logger.critical("Error!")
             raise RuntimeError("Remote script returned unexpected error code "
                                "%d" % ret)
 
