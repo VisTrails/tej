@@ -12,7 +12,7 @@ def print_arg_list(f):
     """
     @functools.wraps(f)
     def wrapper(args):
-        print("reprozip-tests$ " +
+        print("tej-tests$ " +
               " ".join(a if isinstance(a, unicode_)
                        else a.decode('utf-8', 'replace')
                        for a in args))
