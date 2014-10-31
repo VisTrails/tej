@@ -71,6 +71,11 @@ def _delete(args):
     RemoteQueue(args.destination, args.queue).delete(args.id)
 
 
+def _list(args):
+    for status, job_id in RemoteQueue(args.destination, args.queue).list():
+        sys.stdout.write("%s %s\n" % (status, job_id))
+
+
 def main():
     """Entry point when called on the command-line.
     """
@@ -170,6 +175,12 @@ def main():
     parser_delete.add_argument('--id', action='store',
                                help="Identifier of the finished job")
     parser_delete.set_defaults(func=_delete)
+
+    # List action
+    parser_list = subparsers.add_parser(
+            'list', parents=[options, options_dest],
+            help="Lists remote jobs")
+    parser_list.set_defaults(func=_list)
 
     args = parser.parse_args()
     setup_logging(args.verbosity)

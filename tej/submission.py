@@ -405,10 +405,10 @@ class RemoteQueue(object):
                                             job_id),
                                  True)
         if ret == 0:
-            directory, result = output.split('\n')[:2]
+            directory, result = output.splitlines()
             return RemoteQueue.JOB_DONE, PosixPath(directory), result
         elif ret == 2:
-            directory = output.split('\n')[0]
+            directory = output.splitlines[0]
             return RemoteQueue.JOB_RUNNING, PosixPath(directory), None
         elif ret == 3:
             raise JobNotFound
@@ -488,4 +488,15 @@ class RemoteQueue(object):
             raise RuntimeError("Remote script returned unexpected error code "
                                "%d" % ret)
 
-    # TODO : list
+    def list(self):
+        """Lists the jobs on the server.
+        """
+        queue = self._get_queue()
+        if queue is None:
+            raise QueueDoesntExist
+
+        output = self.check_output('%s' % (queue / 'commands' / 'list'))
+
+        for line in output.splitlines():
+            status, job_id = line.split(' ', 1)
+            yield status, job_id
