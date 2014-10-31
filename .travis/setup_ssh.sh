@@ -46,7 +46,11 @@ umask 022
 # Sets up the client
 umask 077
 mkdir ~/.ssh || true
-rm -f ~/.ssh/known_hosts
-ssh-keyscan -p 10022 -t rsa 127.0.0.1 >> ~/.ssh/known_hosts
-cat ~/.ssh/known_hosts
 cp client/id_rsa ~/.ssh/id_rsa
+rm -f ~/.ssh/known_hosts
+# ssh-keyscan is bugged, don't use it
+# ssh-keyscan -v -p 10022 -t rsa 127.0.0.1 >> ~/.ssh/known_hosts
+ssh -o StrictHostKeyChecking=no \
+    -o PasswordAuthentication=no \
+    -p 10022 127.0.0.1 exit
+cat ~/.ssh/known_hosts
