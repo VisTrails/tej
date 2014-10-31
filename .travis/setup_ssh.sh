@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 # Sets up an SSH server
 rm -Rf /tmp/ssh_server
 mkdir /tmp/ssh_server
@@ -34,7 +36,7 @@ ssh-keygen -f key_dsa -N '' -t dsa
 
 # Client keys
 umask 077
-mkdir client
+mkdir client || true
 ssh-keygen -f client/id_rsa -N '' -t rsa
 umask 022
 
@@ -43,7 +45,7 @@ umask 022
 
 # Sets up the client
 umask 077
-mkdir ~/.ssh
+mkdir ~/.ssh || true
 rm -f ~/.ssh/known_hosts
 ssh-keyscan -p 10022 -t rsa 127.0.0.1 >> ~/.ssh/known_hosts
 cat ~/.ssh/known_hosts
