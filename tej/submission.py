@@ -18,7 +18,7 @@ from tej.utils import string_types, iteritems, irange
 __all__ = ['DEFAULT_TEJ_DIR',
            'Error', 'InvalidDestionation', 'QueueDoesntExist',
            'QueueLinkBroken', 'QueueExists', 'JobAlreadyExists', 'JobNotFound',
-           'JobStillRunning'
+           'JobStillRunning', 'RemoteCommandFailure',
            'parse_ssh_destination', 'destination_as_string', 'RemoteQueue']
 
 
@@ -84,6 +84,15 @@ class JobStillRunning(Error):
     """
     def __init__(self, msg="Job is still running"):
         super(JobStillRunning, self).__init__(msg)
+
+
+class RemoteCommandFailure(Exception):
+    """A failure that happened on the server.
+    """
+    def __init__(self, msg=None, command=None, ret=None):
+        if msg is None:
+            msg = "Command %r failed with status %d" % (command, ret)
+        super(RemoteCommandFailure, self).__init__(msg)
 
 
 logger = logging.getLogger('tej')
@@ -233,13 +242,15 @@ class RemoteQueue(object):
         """Calls a command through SSH.
         """
         ret, _ = self._call(cmd, False)
-        assert ret == 0
+        if ret != 0:
+            raise RemoteCommandFailure(command=cmd, ret=ret)
 
     def check_output(self, cmd):
         """Calls a command through SSH and returns its output.
         """
         ret, output = self._call(cmd, True)
-        assert ret == 0
+        if ret != 0:
+            raise RemoteCommandFailure(command=cmd, ret=ret)
         logger.debug("Output: %r", output)
         return output
 
@@ -278,7 +289,8 @@ class RemoteQueue(object):
             logger.debug("Found link to %s, recursing", new)
             return self._resolve_queue(new, depth + 1)
         logger.debug("Server returned %r", answer)
-        raise RuntimeError("Remote command failed in unexpected way")
+        raise RemoteCommandFailure(msg="Remote command failed in unexpected "
+                                       "way")
 
     def _get_queue(self):
         """Gets the actual location of the queue, or None.
@@ -413,8 +425,8 @@ class RemoteQueue(object):
         elif ret == 3:
             raise JobNotFound
         else:
-            raise RuntimeError("Remote script returned unexpected error code "
-                               "%d" % ret)
+            raise RemoteCommandFailure(command="commands/status",
+                                       ret=ret)
 
     def download(self, job_id, files, **kwargs):
         """Downloads files from server.
@@ -467,8 +479,8 @@ class RemoteQueue(object):
         if ret == 3:
             raise JobNotFound
         elif ret != 0:
-            raise RuntimeError("Remote script returned unexpected error code "
-                               "%d" % ret)
+            raise RemoteCommandFailure(command='commands/kill',
+                                       ret=ret)
 
     def delete(self, job_id):
         """Deletes a job from the server.
@@ -485,8 +497,8 @@ class RemoteQueue(object):
         elif ret == 2:
             raise JobStillRunning
         elif ret != 0:
-            raise RuntimeError("Remote script returned unexpected error code "
-                               "%d" % ret)
+            raise RemoteCommandFailure(command='commands/delete',
+                                       ret=ret)
 
     def list(self):
         """Lists the jobs on the server.
