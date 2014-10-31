@@ -18,6 +18,7 @@ from tej.utils import string_types, iteritems, irange
 __all__ = ['DEFAULT_TEJ_DIR',
            'ConfigurationError', 'QueueDoesntExist', 'QueueLinkBroken',
            'QueueExists', 'JobAlreadyExists', 'JobNotFound',
+           'JobStillRunning'
            'parse_ssh_destination', 'destination_as_string', 'RemoteQueue']
 
 
@@ -69,6 +70,13 @@ class JobNotFound(ConfigurationError):
     """
     def __init__(self, msg="Job not found"):
         super(JobNotFound, self).__init__(msg)
+
+
+class JobStillRunning(ConfigurationError):
+    """An operation failed because the target job is still running.
+    """
+    def __init__(self, msg="Job is still running"):
+        super(JobStillRunning, self).__init__(msg)
 
 
 logger = logging.getLogger('tej')
@@ -345,7 +353,6 @@ class RemoteQueue(object):
         chain of links, error.
         """
         queue = self._get_queue()
-
         if queue is None:
             queue = self._setup()
 
@@ -386,7 +393,6 @@ class RemoteQueue(object):
         """Gets the status of a previously-submitted job.
         """
         queue = self._get_queue()
-
         if queue is None:
             logger.critical("Queue doesn't exist on the server")
             raise QueueDoesntExist
@@ -404,7 +410,7 @@ class RemoteQueue(object):
             raise JobNotFound
         else:
             logger.error("Error!")
-            raise RuntimeError("Remote script return unexpected error code "
+            raise RuntimeError("Remote script returned unexpected error code "
                                "%d" % ret)
 
     def download(self, job_id, files, **kwargs):
@@ -446,11 +452,44 @@ class RemoteQueue(object):
                                recursive=recursive)
 
     def kill(self, job_id):
-        # TODO : kill
-        raise NotImplementedError("kill")
+        """Kills a job on the server.
+        """
+        queue = self._get_queue()
+        if queue is None:
+            logger.critical("Queue doesn't exist on the server")
+            raise QueueDoesntExist
+
+        ret, output = self._call('%s %s' % (queue / 'commands' / 'kill',
+                                            job_id),
+                                 False)
+        if ret == 3:
+            logger.critical("No such job")
+            raise JobNotFound
+        elif ret != 0:
+            logger.critical("Error!")
+            raise RuntimeError("Remote script returned unexpected error code "
+                               "%d" % ret)
 
     def delete(self, job_id):
-        # TODO : delete
-        raise NotImplementedError("delete")
+        """Deletes a job from the server.
+        """
+        queue = self._get_queue()
+        if queue is None:
+            logger.critical("Queue doesn't exist on the server")
+            raise QueueDoesntExist
+
+        ret, output = self._call('%s %s' % (queue / 'commands' / 'delete',
+                                            job_id),
+                                 False)
+        if ret == 3:
+            logger.critical("No such job")
+            raise JobNotFound
+        elif ret == 2:
+            logger.critical("Job is still running!")
+            raise JobStillRunning
+        elif ret != 0:
+            logger.critical("Error!")
+            raise RuntimeError("Remote script returned unexpected error code "
+                               "%d" % ret)
 
     # TODO : list
