@@ -12,24 +12,32 @@ import select
 import string
 import sys
 
-from tej.utils import iteritems, irange
+from tej.utils import string_types, iteritems, irange
 
 
 __all__ = ['DEFAULT_TEJ_DIR',
-           'ConfigurationError', 'QueueDoesntExist', 'QueueLinkBroken',
-           'QueueExists', 'JobAlreadyExists', 'JobNotFound',
+           'Error', 'InvalidDestionation', 'QueueDoesntExist',
+           'QueueLinkBroken', 'QueueExists', 'JobAlreadyExists', 'JobNotFound',
+           'JobStillRunning', 'RemoteCommandFailure',
            'parse_ssh_destination', 'destination_as_string', 'RemoteQueue']
 
 
 DEFAULT_TEJ_DIR = '~/.tej'
 
 
-class ConfigurationError(Exception):
-    """Error in the way the server is set up or the client was called.
+class Error(Exception):
+    """Base class for exceptions.
     """
 
 
-class QueueDoesntExist(ConfigurationError):
+class InvalidDestionation(Error):
+    """Invalid SSH destination.
+    """
+    def __init__(self, msg="Invalid destination"):
+        super(InvalidDestionation, self).__init__(msg)
+
+
+class QueueDoesntExist(Error):
     """Queue doesn't exist on the server.
 
     `submit` and `setup` will create a queue on the server, but other commands
@@ -48,7 +56,7 @@ class QueueLinkBroken(QueueDoesntExist):
         super(QueueLinkBroken, self).__init__(msg)
 
 
-class QueueExists(ConfigurationError):
+class QueueExists(Error):
     """The queue whose creation was requested already exists.
 
     A `force` argument (``--force``) is provided to replace it anyway.
@@ -57,18 +65,34 @@ class QueueExists(ConfigurationError):
         super(QueueExists, self).__init__(msg)
 
 
-class JobAlreadyExists(ConfigurationError):
+class JobAlreadyExists(Error):
     """A job with this name already exists on the server; submission failed.
     """
     def __init__(self, msg="Job already exists"):
         super(JobAlreadyExists, self).__init__(msg)
 
 
-class JobNotFound(ConfigurationError):
+class JobNotFound(Error):
     """A job with this name wasn't found on the server.
     """
     def __init__(self, msg="Job not found"):
         super(JobNotFound, self).__init__(msg)
+
+
+class JobStillRunning(Error):
+    """An operation failed because the target job is still running.
+    """
+    def __init__(self, msg="Job is still running"):
+        super(JobStillRunning, self).__init__(msg)
+
+
+class RemoteCommandFailure(Exception):
+    """A failure that happened on the server.
+    """
+    def __init__(self, msg=None, command=None, ret=None):
+        if msg is None:
+            msg = "Command %r failed with status %d" % (command, ret)
+        super(RemoteCommandFailure, self).__init__(msg)
 
 
 logger = logging.getLogger('tej')
@@ -125,7 +149,7 @@ def parse_ssh_destination(destination):
     """
     match = _re_ssh.match(destination)
     if not match:
-        raise ValueError("Invalid destination: %s" % destination)
+        raise InvalidDestionation("Invalid destination: %s" % destination)
     user, host, port = match.groups()
     info = {}
     if user:
@@ -154,16 +178,16 @@ class RemoteQueue(object):
     JOB_RUNNING = 2
 
     def __init__(self, destination, queue):
-        if isinstance(destination, basestring):
+        if isinstance(destination, string_types):
             try:
                 self.destination = parse_ssh_destination(destination)
             except ValueError as e:
-                logger.critical(e)
-                raise ValueError("Can't parse SSH destination %r" %
-                                 self.destination)
+                raise InvalidDestionation("Can't parse SSH destination %s" %
+                                          destination)
         else:
             if 'hostname' not in destination:
-                raise ValueError("destination dictionary is missing hostname")
+                raise InvalidDestionation("destination dictionary is missing "
+                                          "hostname")
             self.destination = destination
         self.queue = PosixPath(queue)
         self.ssh = None
@@ -218,13 +242,15 @@ class RemoteQueue(object):
         """Calls a command through SSH.
         """
         ret, _ = self._call(cmd, False)
-        assert ret == 0
+        if ret != 0:
+            raise RemoteCommandFailure(command=cmd, ret=ret)
 
     def check_output(self, cmd):
         """Calls a command through SSH and returns its output.
         """
         ret, output = self._call(cmd, True)
-        assert ret == 0
+        if ret != 0:
+            raise RemoteCommandFailure(command=cmd, ret=ret)
         logger.debug("Output: %r", output)
         return output
 
@@ -262,15 +288,15 @@ class RemoteQueue(object):
             new = queue.parent / answer[8:]
             logger.debug("Found link to %s, recursing", new)
             return self._resolve_queue(new, depth + 1)
-        logging.critical("Server returned %r", answer)
-        raise RuntimeError("Remote command failed in unexpected way")
+        logger.debug("Server returned %r", answer)
+        raise RemoteCommandFailure(msg="Remote command failed in unexpected "
+                                       "way")
 
     def _get_queue(self):
         """Gets the actual location of the queue, or None.
         """
         queue, depth = self._resolve_queue(self.queue)
         if queue is None and depth > 0:
-            logger.critical("Queue link chain is broken")
             raise QueueLinkBroken
         logger.debug("get_queue = %s", queue)
         return queue
@@ -299,15 +325,14 @@ class RemoteQueue(object):
                 self.check_call('rm -Rf %s' % shell_escape(str(self.queue)))
             else:
                 if queue is not None and depth > 0:
-                    logger.critical("Queue already exists (links to %s)\n"
-                                    "Use --force to replace", queue)
+                    raise QueueExists("Queue already exists (links to %s)\n"
+                                      "Use --force to replace" % queue)
                 elif depth > 0:
-                    logger.critical("Broken link exists\n"
-                                    "Use --force to replace")
+                    raise QueueExists("Broken link exists\n"
+                                      "Use --force to replace")
                 else:
-                    logger.critical("Queue already exists\n"
-                                    "Use --force to replace")
-                raise QueueExists
+                    raise QueueExists("Queue already exists\n"
+                                      "Use --force to replace")
 
         queue = self._setup()
 
@@ -345,7 +370,6 @@ class RemoteQueue(object):
         chain of links, error.
         """
         queue = self._get_queue()
-
         if queue is None:
             queue = self._setup()
 
@@ -386,33 +410,30 @@ class RemoteQueue(object):
         """Gets the status of a previously-submitted job.
         """
         queue = self._get_queue()
-
         if queue is None:
-            logger.critical("Queue doesn't exist on the server")
             raise QueueDoesntExist
 
         ret, output = self._call('%s %s' % (queue / 'commands' / 'status',
                                             job_id),
                                  True)
         if ret == 0:
-            directory, result = output.split('\n')[:2]
+            directory, result = output.splitlines()
             return RemoteQueue.JOB_DONE, PosixPath(directory), result
         elif ret == 2:
-            directory = output.split('\n')[0]
+            directory = output.splitlines()[0]
             return RemoteQueue.JOB_RUNNING, PosixPath(directory), None
         elif ret == 3:
             raise JobNotFound
         else:
-            logger.error("Error!")
-            raise RuntimeError("Remote script return unexpected error code "
-                               "%d" % ret)
+            raise RemoteCommandFailure(command="commands/status",
+                                       ret=ret)
 
     def download(self, job_id, files, **kwargs):
         """Downloads files from server.
         """
         if not files:
             return
-        if isinstance(files, basestring):
+        if isinstance(files, string_types):
             files = [files]
         directory = False
         recursive = kwargs.pop('recursive', True)
@@ -435,7 +456,7 @@ class RemoteQueue(object):
 
         scp_client = scp.SCPClient(self.ssh.get_transport())
         for filename in files:
-            logger.info("Downloading %s" % (target / filename))
+            logger.info("Downloading %s", target / filename)
             if directory:
                 scp_client.get(str(target / filename),
                                str(destination / filename),
@@ -446,11 +467,48 @@ class RemoteQueue(object):
                                recursive=recursive)
 
     def kill(self, job_id):
-        # TODO : kill
-        raise NotImplementedError("kill")
+        """Kills a job on the server.
+        """
+        queue = self._get_queue()
+        if queue is None:
+            raise QueueDoesntExist
+
+        ret, output = self._call('%s %s' % (queue / 'commands' / 'kill',
+                                            job_id),
+                                 False)
+        if ret == 3:
+            raise JobNotFound
+        elif ret != 0:
+            raise RemoteCommandFailure(command='commands/kill',
+                                       ret=ret)
 
     def delete(self, job_id):
-        # TODO : delete
-        raise NotImplementedError("delete")
+        """Deletes a job from the server.
+        """
+        queue = self._get_queue()
+        if queue is None:
+            raise QueueDoesntExist
 
-    # TODO : list
+        ret, output = self._call('%s %s' % (queue / 'commands' / 'delete',
+                                            job_id),
+                                 False)
+        if ret == 3:
+            raise JobNotFound
+        elif ret == 2:
+            raise JobStillRunning
+        elif ret != 0:
+            raise RemoteCommandFailure(command='commands/delete',
+                                       ret=ret)
+
+    def list(self):
+        """Lists the jobs on the server.
+        """
+        queue = self._get_queue()
+        if queue is None:
+            raise QueueDoesntExist
+
+        output = self.check_output('%s' % (queue / 'commands' / 'list'))
+
+        for line in output.splitlines():
+            status, job_id = line.split(' ', 1)
+            yield status, job_id

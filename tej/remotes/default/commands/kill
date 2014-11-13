@@ -11,8 +11,7 @@
 #   1. job ID
 #
 # Returns:
-#   0 if job was killed, 1 if job was not running, 3 if there is no such job
-#   (already removed?)
+#   0 if job was killed, 3 if there is no such job (already removed?)
 #
 
 # Inputs
@@ -52,5 +51,5 @@ if [ "$status" = running ]; then
 else
     echo "Job is not running" >&2
     echo "Job is not running" >> tej.log
-    exit 1
+    exit 0
 fi
