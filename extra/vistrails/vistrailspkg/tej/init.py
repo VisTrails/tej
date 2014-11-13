@@ -219,6 +219,17 @@ class SubmitShellJob(BaseSubmitJob):
     def job_start(self, params):
         """Creates a temporary job with the given source, upload and submit it.
         """
+        queue = QueueCache.get(params['destination'], params['queue'])
+
+        # First, check if job already exists
+        try:
+            queue.status(params['job_id'])
+        except tej.JobNotFound:
+            pass
+        else:
+            return params
+
+        # Alright, submit a new job
         directory = self.interpreter.filePool.create_directory(
                 prefix='vt_tmp_shelljob_').name
         # We use io.open() here because we could be writing scripts on Windows
@@ -238,8 +249,8 @@ class SubmitShellJob(BaseSubmitJob):
                      u'>_stdout.txt '
                      u'2>_stderr.txt\n' % self._job_interpreter)
 
-        queue = QueueCache.get(params['destination'], params['queue'])
         queue.submit(params['job_id'], directory)
+
         return params
 
     def job_set_results(self, params):
