@@ -80,7 +80,12 @@ class RemoteJob(object):
                                 'job_id': self.job_id})
 
     def finished(self):
-        status, target, arg = self.queue.status(self.job_id)
+        try:
+            status, target, arg = self.queue.status(self.job_id)
+        except tej.JobNotFound:
+            # We signal that we are done
+            # The Module will raise an error on resume, as intended
+            return True
         return status == tej.RemoteQueue.JOB_DONE
 
 
