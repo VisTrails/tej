@@ -116,7 +116,7 @@ class Job(Module):
             self.set_output('exitcode', int(arg))
         elif status == tej.RemoteQueue.JOB_RUNNING:
             raise ModuleSuspended(self, "Remote job is running",
-                                  monitor=job)
+                                  handle=job)
         else:
             raise ModuleError(self, "Invalid job status %r" % status)
 
@@ -163,7 +163,7 @@ class BaseSubmitJob(JobMixin, Job):
         """
         raise NotImplementedError
 
-    def job_get_monitor(self, params):
+    def job_get_handle(self, params):
         """Gets a RemoteJob object to monitor a runnning job.
         """
         queue = QueueCache.get(params['destination'], params['queue'])
