@@ -420,7 +420,7 @@ class RemoteQueue(object):
             directory, result = output.splitlines()
             return RemoteQueue.JOB_DONE, PosixPath(directory), result
         elif ret == 2:
-            directory = output.splitlines[0]
+            directory = output.splitlines()[0]
             return RemoteQueue.JOB_RUNNING, PosixPath(directory), None
         elif ret == 3:
             raise JobNotFound
