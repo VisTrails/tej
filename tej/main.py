@@ -55,7 +55,8 @@ def _status(args):
         else:
             raise RuntimeError("Got unknown job status %r" % status)
         if arg is not None:
-            print(arg)
+            sys.stdout.flush()
+            sys.stdout.buffer.write(arg + b'\n')
     except JobNotFound:
         print("not found")
 
