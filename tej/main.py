@@ -36,8 +36,9 @@ def _setup(args):
 
 
 def _submit(args):
-    RemoteQueue(args.destination, args.queue).submit(
-            args.id, args.directory, args.script)
+    job_id = RemoteQueue(args.destination, args.queue).submit(
+                         args.id, args.directory, args.script)
+    print(job_id)
 
 
 def _status(args):

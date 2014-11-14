@@ -413,6 +413,7 @@ class RemoteQueue(object):
                                          job_id, target,
                                          script))
         logger.info("Submitted job %s", job_id)
+        return job_id
 
     def status(self, job_id):
         """Gets the status of a previously-submitted job.
