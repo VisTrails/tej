@@ -31,7 +31,8 @@ def setup_logging(verbosity):
 
 
 def _setup(args):
-    RemoteQueue(args.destination, args.queue).setup(args.make_link, args.force)
+    RemoteQueue(args.destination, args.queue).setup(args.make_link, args.force,
+                                                    args.only_links)
 
 
 def _submit(args):
@@ -126,6 +127,7 @@ def main():
     parser_setup.add_argument('--make-default-link', action='append_const',
                               dest='make_link', const=DEFAULT_TEJ_DIR)
     parser_setup.add_argument('--force', action='store_true')
+    parser_setup.add_argument('--only-links', action='store_true')
     parser_setup.set_defaults(func=_setup)
 
     # Submit action
