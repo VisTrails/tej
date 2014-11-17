@@ -301,7 +301,7 @@ class RemoteQueue(object):
         logger.debug("get_queue = %s", queue)
         return queue
 
-    def setup(self, links=None, force=False):
+    def setup(self, links=None, force=False, only_links=False):
         """Installs the runtime at the target location.
 
         This will not replace an existing installation, unless it is a broken
@@ -312,6 +312,14 @@ class RemoteQueue(object):
         """
         if not links:
             links = []
+
+        if only_links:
+            logger.info("Only creating links")
+            for link in links:
+                self.check_call('echo "tejdir:" %(queue)s > %(link)s' % {
+                                'queue': shell_escape(str(self.queue)),
+                                'link': shell_escape(link)})
+            return
 
         queue, depth = self._resolve_queue(self.queue)
         if queue is not None or depth > 0:
@@ -405,6 +413,7 @@ class RemoteQueue(object):
                                          job_id, target,
                                          script))
         logger.info("Submitted job %s", job_id)
+        return job_id
 
     def status(self, job_id):
         """Gets the status of a previously-submitted job.

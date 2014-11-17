@@ -31,12 +31,14 @@ def setup_logging(verbosity):
 
 
 def _setup(args):
-    RemoteQueue(args.destination, args.queue).setup(args.make_link, args.force)
+    RemoteQueue(args.destination, args.queue).setup(args.make_link, args.force,
+                                                    args.only_links)
 
 
 def _submit(args):
-    RemoteQueue(args.destination, args.queue).submit(
-            args.id, args.directory, args.script)
+    job_id = RemoteQueue(args.destination, args.queue).submit(
+                         args.id, args.directory, args.script)
+    print(job_id)
 
 
 def _status(args):
@@ -53,7 +55,8 @@ def _status(args):
         else:
             raise RuntimeError("Got unknown job status %r" % status)
         if arg is not None:
-            print(arg)
+            sys.stdout.flush()
+            sys.stdout.buffer.write(arg + b'\n')
     except JobNotFound:
         print("not found")
 
@@ -126,6 +129,7 @@ def main():
     parser_setup.add_argument('--make-default-link', action='append_const',
                               dest='make_link', const=DEFAULT_TEJ_DIR)
     parser_setup.add_argument('--force', action='store_true')
+    parser_setup.add_argument('--only-links', action='store_true')
     parser_setup.set_defaults(func=_setup)
 
     # Submit action

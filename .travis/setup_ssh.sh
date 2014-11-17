@@ -47,6 +47,7 @@ umask 022
 umask 077
 mkdir ~/.ssh || true
 cp client/id_rsa ~/.ssh/id_rsa
+umask 022
 rm -f ~/.ssh/known_hosts
 # ssh-keyscan is bugged, don't use it
 # ssh-keyscan -v -p 10022 -t rsa 127.0.0.1 >> ~/.ssh/known_hosts
