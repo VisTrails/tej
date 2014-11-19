@@ -6,6 +6,7 @@ import urllib
 
 import tej
 
+from vistrails.core import debug
 from vistrails.core.modules.basic_modules import PathObject
 from vistrails.core.modules.config import ModuleSettings
 from vistrails.core.modules.vistrails_module import Module, ModuleError, \
@@ -15,6 +16,21 @@ from vistrails.core.vistrail.job import JobMixin
 
 assert __name__.endswith('.init')
 this_pkg = __name__[:-5]
+
+
+class ServerLogger(tej.ServerLogger):
+    def __init__(self):
+        tej.ServerLogger.__init__(self)
+
+    def message(self, data):
+        debug.warning("tej server: %s" % data)
+
+ServerLogger = ServerLogger()
+
+
+class RemoteQueue(tej.RemoteQueue):
+    def server_logger(self):
+        return ServerLogger
 
 
 class QueueCache(object):
@@ -28,7 +44,7 @@ class QueueCache(object):
         if key in self._cache:
             return self._cache[key]
         else:
-            queue = tej.RemoteQueue(destination, queue)
+            queue = RemoteQueue(destination, queue)
             self._cache[key] = queue
             return queue
 
