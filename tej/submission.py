@@ -10,7 +10,6 @@ from rpaths import PosixPath, Path
 import scp
 import select
 import string
-import sys
 
 from tej.utils import string_types, iteritems, irange
 
@@ -19,7 +18,8 @@ __all__ = ['DEFAULT_TEJ_DIR',
            'Error', 'InvalidDestionation', 'QueueDoesntExist',
            'QueueLinkBroken', 'QueueExists', 'JobAlreadyExists', 'JobNotFound',
            'JobStillRunning', 'RemoteCommandFailure',
-           'parse_ssh_destination', 'destination_as_string', 'RemoteQueue']
+           'parse_ssh_destination', 'destination_as_string',
+           'ServerLogger', 'RemoteQueue']
 
 
 DEFAULT_TEJ_DIR = '~/.tej'
@@ -98,12 +98,6 @@ class RemoteCommandFailure(Exception):
 logger = logging.getLogger('tej')
 
 
-if hasattr(sys.stderr, 'buffer') and hasattr(sys.stderr.buffer, 'write'):
-    stderr_bytes = sys.stderr.buffer
-else:
-    stderr_bytes = sys.stderr
-
-
 def unique_names():
     """Generates unique sequences of bytes.
     """
@@ -173,6 +167,29 @@ def destination_as_string(destination):
                                 destination['hostname'])
 
 
+class ServerLogger(object):
+    """Adapter getting bytes from the server's output and handing them to log.
+    """
+    logger = logging.getLogger('tej.server')
+
+    def __init__(self):
+        self.data = []
+
+    def append(self, data):
+        self.data.append(data)
+
+    def done(self):
+        if self.data:
+            data = b''.join(self.data)
+            data = data.decode('utf-8', 'replace')
+            data = data.rstrip()
+            self.message(data)
+            self.data = []
+
+    def message(self, data):
+        self.logger.warning(data)
+
+
 class RemoteQueue(object):
     JOB_DONE = 0
     JOB_RUNNING = 2
@@ -192,6 +209,14 @@ class RemoteQueue(object):
         self.queue = PosixPath(queue)
         self.ssh = None
         self._connect()
+
+    def server_logger(self):
+        """Handles messages from the server.
+
+        By default, uses getLogger('tej.server').warning(). Override this in
+        subclasses to provide your own mechanism.
+        """
+        return ServerLogger()
 
     @property
     def destination_string(self):
@@ -215,6 +240,8 @@ class RemoteQueue(object):
         Remote stderr gets printed to this program's stderr. Output is captured
         and may be returned.
         """
+        server_err = self.server_logger()
+
         chan = self.ssh.get_transport().open_session()
         try:
             logger.debug("Invoking %r%s",
@@ -227,8 +254,7 @@ class RemoteQueue(object):
                     if chan.recv_stderr_ready():
                         data = chan.recv_stderr(1024)
                         if data:
-                            stderr_bytes.write(data)
-                            stderr_bytes.flush()
+                            server_err.append(data)
                     if chan.recv_ready():
                         data = chan.recv(1024)
                         if get_output:
@@ -236,6 +262,7 @@ class RemoteQueue(object):
             output = output.rstrip(b'\r\n')
             return chan.recv_exit_status(), output
         finally:
+            server_err.done()
             chan.close()
 
     def check_call(self, cmd):
