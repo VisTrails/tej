@@ -240,7 +240,7 @@ class SubmitJob(BaseSubmitJob):
         try:
             with ServerLogger.hide_output():
                 queue.status(params['job_id'])
-        except tej.JobNotFound:
+        except (tej.JobNotFound, tej.QueueDoesntExist):
             pass
         else:
             return params
@@ -272,7 +272,7 @@ class SubmitShellJob(BaseSubmitJob):
         try:
             with ServerLogger.hide_output():
                 queue.status(params['job_id'])
-        except tej.JobNotFound:
+        except (tej.JobNotFound, tej.QueueDoesntExist):
             pass
         else:
             return params
