@@ -235,6 +235,17 @@ class SubmitJob(BaseSubmitJob):
         """Sends the directory and submits the job.
         """
         queue = QueueCache.get(params['destination'], params['queue'])
+
+        # First, check if job already exists
+        try:
+            with ServerLogger.hide_output():
+                queue.status(params['job_id'])
+        except tej.JobNotFound:
+            pass
+        else:
+            return params
+
+        # Alright, submit a new job
         queue.submit(params['job_id'],
                      self.get_input('job').name,
                      self.get_input('script'))
