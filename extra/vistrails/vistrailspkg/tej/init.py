@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division
 
+import contextlib
 import io
 import os
 import urllib
@@ -20,10 +21,22 @@ this_pkg = __name__[:-5]
 
 class ServerLogger(tej.ServerLogger):
     def __init__(self):
+        self.hidden = False
         tej.ServerLogger.__init__(self)
 
+    @contextlib.contextmanager
+    def hide_output(self):
+        self.hidden = True
+        try:
+            yield
+        finally:
+            self.hidden = False
+
     def message(self, data):
-        debug.warning("tej server: %s" % data)
+        if self.hidden:
+            debug.debug("tej server: %s" % data)
+        else:
+            debug.warning("tej server: %s" % data)
 
 ServerLogger = ServerLogger()
 
@@ -97,7 +110,8 @@ class RemoteJob(object):
 
     def finished(self):
         try:
-            status, target, arg = self.queue.status(self.job_id)
+            with ServerLogger.hide_output():
+                status, target, arg = self.queue.status(self.job_id)
         except tej.JobNotFound:
             # We signal that we are done
             # The Module will raise an error on resume, as intended
@@ -125,7 +139,8 @@ class Job(Module):
 
         # Check job status
         try:
-            status, target, arg = queue.status(job_id)
+            with ServerLogger.hide_output():
+                status, target, arg = queue.status(job_id)
         except tej.JobNotFound:
             raise ModuleError(self, "Job not found")
 
@@ -244,7 +259,8 @@ class SubmitShellJob(BaseSubmitJob):
 
         # First, check if job already exists
         try:
-            queue.status(params['job_id'])
+            with ServerLogger.hide_output():
+                queue.status(params['job_id'])
         except tej.JobNotFound:
             pass
         else:
