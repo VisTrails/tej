@@ -29,6 +29,13 @@ def setup_logging(verbosity):
     logging.getLogger().addHandler(handler)
     logger.setLevel(level)
 
+    # Prints output from server to stderr
+    server = logging.getLogger('tej.server')
+    server.propagate = False
+    raw_console = logging.StreamHandler(sys.stderr)
+    raw_console.setFormatter(logging.Formatter('%(message)s'))
+    server.addHandler(raw_console)
+
 
 def _setup(args):
     RemoteQueue(args.destination, args.queue).setup(args.make_link, args.force,
