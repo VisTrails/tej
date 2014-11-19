@@ -190,7 +190,7 @@ class BaseSubmitJob(JobMixin, Job):
         """
         return {'destination': self.get_input('queue').destination_string,
                 'queue': str(self.get_input('queue').queue),
-                'job_id': self.get_input('id')}
+                'job_id': self.get_input('id') or self.make_id()}
 
     def job_start(self, params):
         """Submits a job.
