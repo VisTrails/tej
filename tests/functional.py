@@ -22,7 +22,7 @@ def print_arg_list(f):
     """
     @functools.wraps(f)
     def wrapper(args, **kwargs):
-        print("tej-tests$ " +
+        print("\ntej-tests$ " +
               " ".join(a if isinstance(a, unicode_)
                        else a.decode('utf-8', 'replace')
                        for a in args))
@@ -94,6 +94,7 @@ def functional_tests():
                      'done\n'
                      'echo "job output" > job1results\n')
         job_id = check_output(['tej', 'submit', destination, jobdir.path])
+        job_id = job_id.rstrip().decode('ascii')
     finally:
         jobdir.rmtree()
 
@@ -119,6 +120,10 @@ def functional_tests():
             assert fp.read() == 'job output\n'
     finally:
         destdir.rmtree()
+
+    logging.info("List jobs")
+    output = check_output(['tej', 'list', destination])
+    assert output == ('%s finished\n' % job_id).encode('ascii')
 
     logging.info("Remove finished job")
     check_call(['tej', 'delete', destination, '--id', job_id])

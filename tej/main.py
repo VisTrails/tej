@@ -82,8 +82,8 @@ def _delete(args):
 
 
 def _list(args):
-    for status, job_id in RemoteQueue(args.destination, args.queue).list():
-        sys.stdout.write("%s %s\n" % (status, job_id))
+    for job_id, info in RemoteQueue(args.destination, args.queue).list():
+        sys.stdout.write("%s %s\n" % (job_id, info['status']))
 
 
 def main():
