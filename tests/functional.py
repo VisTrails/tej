@@ -107,7 +107,7 @@ def functional_tests():
 
     logging.info("Check status of finished job")
     output = check_output(['tej', 'status', destination, '--id', job_id])
-    assert output == b'done\n0\n'
+    assert output == b'finished\n0\n'
 
     logging.info("Download job results")
     destdir = Path.tempdir(prefix='tej-tests-')

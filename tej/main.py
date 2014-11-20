@@ -56,7 +56,7 @@ def _status(args):
         queue = RemoteQueue(args.destination, args.queue)
         status, directory, arg = queue.status(args.id)
         if status == RemoteQueue.JOB_DONE:
-            print("done")
+            print("finished")
         elif status == RemoteQueue.JOB_RUNNING:
             print("running")
         else:
