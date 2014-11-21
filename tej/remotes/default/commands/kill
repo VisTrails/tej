@@ -14,10 +14,12 @@
 #   0 if job was killed, 3 if there is no such job (already removed?)
 #
 
+set -e
+
 # Inputs
 job_id="$1"
 
-cd "$(dirname 0)/.."
+cd "$(dirname "$0")/.."
 
 (date; echo "kill $@") >> tej.log
 
@@ -32,7 +34,7 @@ fi
 # Reads two lines from file
 exec 3<"$job_root/status"
 read status 0<&3
-read arg 0<&3
+read arg 0<&3 || true
 exec 3<&-
 
 echo "status=$status arg=$arg" >> tej.log

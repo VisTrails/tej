@@ -10,6 +10,8 @@
 # No arguments
 #
 
+set -e
+
 cd "$(dirname $0)/.."
 
 (date; echo "setup $@") > tej.log
