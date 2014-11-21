@@ -70,7 +70,7 @@ def _status(args):
 
 def _download(args):
     RemoteQueue(args.destination, args.queue).download(args.id, args.files,
-                                                       destination='.')
+                                                       directory='.')
 
 
 def _kill(args):
