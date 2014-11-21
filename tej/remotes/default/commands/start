@@ -20,7 +20,7 @@ script="$1"
 # Starts program
 chmod +x "$script" 2>&1
 script="$(dirname "$script")/$(basename "$script")"
-"$script" &
+"$script" >_stdout 2>_stderr </dev/null &
 pid=$!
 
 # Writes status file

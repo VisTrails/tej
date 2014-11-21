@@ -89,6 +89,7 @@ def functional_tests():
     try:
         with jobdir.open('w', 'start.sh', newline='\n') as fp:
             fp.write('#!/bin/sh\n'
+                     'echo "stdout here"\n'
                      'while ! [ -e ~/tej2/job1done ]; do\n'
                      '    sleep 1\n'
                      'done\n'
@@ -114,10 +115,12 @@ def functional_tests():
     destdir = Path.tempdir(prefix='tej-tests-')
     try:
         check_call(['tej', 'download', destination, '--id', job_id,
-                    'job1results'],
+                    'job1results', '_stdout'],
                    cwd=destdir.path)
         with destdir.open('r', 'job1results') as fp:
             assert fp.read() == 'job output\n'
+        with destdir.open('r', '_stdout') as fp:
+            assert fp.read() == 'stdout here\n'
     finally:
         destdir.rmtree()
 
