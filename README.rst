@@ -17,8 +17,8 @@ beforehand; it will setup the structure it needs on the server on the first run
 if necessary (in its simplest form, a ~/.tej directory on the server, that will
 contain the jobs).
 
-Usage (projected)
------------------
+Usage
+-----
 
 Sets up tej on the server (optional, else it gets setup on the first run, with
 default options)::
@@ -26,14 +26,14 @@ default options)::
     $ tej setup user@server.hostna.me \
         --queue /scratch/tejqueue \
         --make-link ~/.tej \
-        --plugin=default
+        --plugin default
 
 This takes a destination to SSH into, the location of tej's directory (there
 can be several on a server; by default, ``~/.tej`` is used), ``--make-link``
 creates a link so that future invocations will be redirected to
 ``/scract/tejqueue``, and ``--plugin`` selects which plugins to setup on the
 server (since tej is extensible, other scheduling/running subsystems might be
-written).
+added in the future).
 
 Submit a simple job::
 
@@ -45,10 +45,6 @@ Here `myjobdir` is assumed to have the default layout, and no metadata is
 added. The directory will be uploaded in its entirety, and ``start.sh`` will be
 run.
 
-The optional JSON file ``tej.json`` can contain metadata, such as maximum run
-time, what to do with the standard/error outputs, when to run the job, and
-email addresses or webhook to notify on completion.
-
 Submit a job explicitely::
 
     $ tej submit user@server.hostna.me --queue=/scratch/tejqueue \
@@ -58,9 +54,6 @@ Submit a job explicitely::
     Job submitted as:
     example_job
 
-In this form, additional metadata is provided on the command-line; it is used
-to override the default directory structure and metadata.
-
 Get the status of a job::
 
     $ tej status user@server.hostna.me --id myjobdir_user_123456
@@ -69,18 +62,17 @@ Get the status of a job::
         --id example_job
     Job is finished (1:30:01)
     $ tej status user@server.hostna.me --id myjobdir_user_567890
-    No job with that identifier
+    No job 'myjobdir_user_567890'
 
 Download the output from a finished job::
 
     $ tej download user@server.hostna.me --id myjobdir_user_123456 \
-        input.bin \
-        output/log.txt: \
-        results.csv:/tmp/experiment.csv
+        output/log.txt
+    $ tej download user@server.hostna.me --id myjobdir_user_123456 \
+        results.csv view.png input.bin
 
-Note that there is no need for the file to be an output. `input.bin` will be
-downloaded to the current directory; `output/log.txt` will be printed in the
-terminal; and `results.csv` has an explicit destination path.
+Note that there is no need for the file to be an *output*. The files are
+downloaded to the current directory.
 
 Kill a running job::
 
@@ -96,8 +88,9 @@ Cleanup a finished job::
     $ tej delete user@server.hostna.me --id example_job
     Deleted job 'example_job'
 
-Of course none of this is implemented yet, so it's all subject to change. Feel
-free to give me your opinion on these or direct me your feature requests.
+Note that this is still alpha software. The command-line interface, in
+particular, is likely to evolve. Feel free to give me your opinion on it or
+direct me your feature requests/patches on Github.
 
 Name
 ----
