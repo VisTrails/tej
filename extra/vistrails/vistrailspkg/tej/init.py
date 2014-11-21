@@ -96,18 +96,6 @@ class RemoteJob(object):
         self.queue = queue
         self.job_id = job_id
 
-    @staticmethod
-    def monitor_id(params):
-        # Identifier for the JobMonitor
-        return '%s/%s/%s' % (params['destination'],
-                             params['queue'],
-                             params['job_id'])
-
-    def get_monitor_id(self):
-        return self.monitor_id({'destination': self.queue.destination_string,
-                                'queue': str(self.queue.queue),
-                                'job_id': self.job_id})
-
     def finished(self):
         try:
             with ServerLogger.hide_output():
@@ -157,7 +145,7 @@ class Job(Module):
             raise ModuleError(self, "Invalid job status %r" % status)
 
 
-class BaseSubmitJob(JobMixin, Job):
+class BaseSubmitJob(JobMixin, Module):
     """Starts a job on a server.
 
     Thanks to the suspension/job tracking mechanism, this module does much more
@@ -165,8 +153,9 @@ class BaseSubmitJob(JobMixin, Job):
     is finished, you can obtain files from it.
     """
     _settings = ModuleSettings(abstract=True)
-    _input_ports = [('id', '(basic:String)',
-                     {'optional': True})]
+    _input_ports = [('queue', Queue)]
+    _output_ports = [('job', '(org.vistrails.extra.tej:Job)'),
+                     ('exitcode', '(basic:Integer)')]
 
     def make_id(self):
         """Makes a default identifier, using the pipeline signature.
@@ -178,19 +167,12 @@ class BaseSubmitJob(JobMixin, Job):
                               "No explicit job ID and module has no signature")
         return "vistrails_module_%s" % self.signature
 
-    def job_id(self, params):
-        """Returns the job identifier that was provided, or calls make_id().
-        """
-        if params.get('job_id') is None:
-            params['job_id'] = self.make_id()
-        return RemoteJob.monitor_id(params)
-
     def job_read_inputs(self):
         """Reads the input ports.
         """
         return {'destination': self.get_input('queue').destination_string,
                 'queue': str(self.get_input('queue').queue),
-                'job_id': self.get_input('id') or self.make_id()}
+                'job_id': self.make_id()}
 
     def job_start(self, params):
         """Submits a job.
