@@ -30,13 +30,10 @@ if ! [ -d "$job_root" ]; then
     exit 3
 fi
 
-# Reads two lines from file
-exec 3<"$job_root/status"
-read status 0<&3
-read arg 0<&3
-exec 3<&-
+# Reads status from file
+read status < "$job_root/status"
 
-echo "status=$status arg=$arg" >> tej.log
+echo "status=$status" >> tej.log
 
 if [ "$status" = finished ]; then
     rm -Rf "$job_root"

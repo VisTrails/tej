@@ -44,8 +44,8 @@ if [ "$status" = running ]; then
         echo "Job did not finish in time -- killed" >&2
         echo "Job did not finish in time -- killed" >> tej.log
     else
-        echo "Job terminated" >&2
-        echo "Job terminated" >> tej.log
+        echo "Job canceled" >&2
+        echo "Job canceled" >> tej.log
     fi
     exit 0
 else
