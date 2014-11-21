@@ -56,7 +56,7 @@ def _status(args):
         queue = RemoteQueue(args.destination, args.queue)
         status, directory, arg = queue.status(args.id)
         if status == RemoteQueue.JOB_DONE:
-            print("done")
+            print("finished")
         elif status == RemoteQueue.JOB_RUNNING:
             print("running")
         else:
@@ -82,8 +82,8 @@ def _delete(args):
 
 
 def _list(args):
-    for status, job_id in RemoteQueue(args.destination, args.queue).list():
-        sys.stdout.write("%s %s\n" % (status, job_id))
+    for job_id, info in RemoteQueue(args.destination, args.queue).list():
+        sys.stdout.write("%s %s\n" % (job_id, info['status']))
 
 
 def main():

@@ -102,6 +102,6 @@ free to give me your opinion on these or direct me your feature requests.
 Name
 ----
 
-"tej" is French slang for throwing/casting. It's intended here to be used as a
+"tej" ``/tɛʒ/`` is French slang for throwing/casting. It's intended here to be used as a
 verb ("let me tej it to the server...", "Is it done yet? I tej'd that
-yesterday!").
+yesterday!"). Probably not the best name, but it wasn't taken, and it's short.

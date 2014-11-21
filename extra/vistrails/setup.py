@@ -7,7 +7,7 @@ setup(name='vistrails-tej',
       entry_points={
         'vistrails.packages': ['tej = vistrailspkg.tej']},
       namespace_packages=['vistrailspkg'],
-      install_requires=['tej-python>=0.1'],
+      install_requires=['tej>=0.1'],
       description="VisTrails package for tej",
       zip_safe=False,
       author="Remi Rampin",

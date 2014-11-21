@@ -31,11 +31,15 @@ if ! [ -d "$job_root" ]; then
     exit 3
 fi
 
-# Reads two lines from file
-exec 3<"$job_root/status"
-read status 0<&3
-read arg 0<&3
-exec 3<&-
+if [ -f "$job_root/status" ]; then
+    # Reads two lines from file
+    exec 3<"$job_root/status"
+    read status 0<&3
+    read arg 0<&3
+    exec 3<&-
+else
+    status="incomplete"
+fi
 
 echo "status=$status arg=$arg" >> tej.log
 
@@ -44,6 +48,12 @@ if [ "$status" = running ]; then
     cd "$job_root/stage"
     pwd
     exit 2
+elif [ "$status" = incomplete ]; then
+    echo "Job is incomplete" >> tej.log
+    echo "Job is incomplete (submission aborted?)" >&2
+    cd "$job_root/stage"
+    pwd
+    exit 1
 else
     cd "$job_root/stage"
     pwd

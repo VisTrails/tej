@@ -22,7 +22,7 @@ with open('README.rst') as fp:
 req = ['paramiko', 'rpaths', 'scp']
 if sys.version_info < (2, 7):
     req.append('argparse')
-setup(name='tej-python',
+setup(name='tej',
       version='0.1',
       packages=['tej'],
       package_data={'tej': list_files('remotes/default', 'tej')},

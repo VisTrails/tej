@@ -545,6 +545,14 @@ class RemoteQueue(object):
 
         output = self.check_output('%s' % (queue / 'commands' / 'list'))
 
+        job_id, info = None, None
         for line in output.splitlines():
-            status, job_id = line.split(' ', 1)
-            yield status, job_id
+            line = line.decode('utf-8')
+            if line.startswith('    '):
+                key, value = line[4:].split(': ', 1)
+                info[key] = value
+            else:
+                if job_id is not None:
+                    yield job_id, info
+                job_id = line
+                info = {}
