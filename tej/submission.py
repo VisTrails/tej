@@ -454,6 +454,7 @@ class RemoteQueue(object):
                                  True)
         if ret == 0:
             directory, result = output.splitlines()
+            result = result.decode('utf-8')
             return RemoteQueue.JOB_DONE, PosixPath(directory), result
         elif ret == 2:
             directory = output.splitlines()[0]
