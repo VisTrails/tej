@@ -198,7 +198,7 @@ class RemoteQueue(object):
         if isinstance(destination, string_types):
             try:
                 self.destination = parse_ssh_destination(destination)
-            except ValueError as e:
+            except ValueError:
                 raise InvalidDestionation("Can't parse SSH destination %s" %
                                           destination)
         else:
