@@ -28,14 +28,15 @@ cd "$(dirname "$0")/.."
 job_root="jobs/$job_id"
 if ! mkdir "$job_root" 2>/dev/null; then
     if [ -d "$job_root" ]; then
-        echo "Job already exists!" >&2
         echo "Job already exists!" >> tej.log
+        echo "Job already exists!" >&2
         exit 4
     else
         echo "Couldn't create job directory" >&2
         exit 1
     fi
 fi
+(echo "created"; echo ''; date "+%s") > "$job_root/status"
 job_dir="$job_root/stage"
 
 # Prints out the name of the new directory, where the job is to be uploaded

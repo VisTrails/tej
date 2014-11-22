@@ -37,11 +37,11 @@ read status < "$job_root/status"
 
 echo "status=$status" >> tej.log
 
-if [ "$status" = finished ]; then
-    rm -Rf "$job_root"
-    exit 0
-else
+if [ "$status" = running ]; then
     echo "Job is still running" >&2
     echo "Job is still running" >> tej.log
     exit 2
+else
+    rm -Rf "$job_root"
+    exit 0
 fi

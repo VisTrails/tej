@@ -40,9 +40,9 @@ exec 3<&-
 echo "status=$status arg=$arg" >> tej.log
 
 if [ "$status" = running ]; then
-    kill -TERM $arg
+    kill -TERM "$arg"
     sleep 3
-    if kill -KILL $arg; then
+    if kill -KILL "$arg"; then
         echo "Job did not finish in time -- killed" >&2
         echo "Job did not finish in time -- killed" >> tej.log
     else

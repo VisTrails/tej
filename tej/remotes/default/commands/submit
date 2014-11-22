@@ -33,6 +33,12 @@ if ! [ -d "$job_dir" ]; then
     echo "Job directory doesn't exist" >&2
     exit 1
 fi
+read status < "$job_dir/../status"
+if [ "$status" != created ]; then
+    echo "Job is already $status" >> tej.lob
+    echo "Invalid job status '$status'" >&2
+    exit 1
+fi
 
 # Starts process
 cd "$job_dir"

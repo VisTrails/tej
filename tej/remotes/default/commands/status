@@ -18,6 +18,9 @@
 
 set -e
 
+# Include
+. "$(dirname "$0")/lib/utils.sh"
+
 # Inputs
 job_id="$1"
 
@@ -38,6 +41,8 @@ if [ -f "$job_root/status" ]; then
     exec 3<"$job_root/status"
     read status 0<&3
     read arg 0<&3 || true
+    read started_date 0<&3 || true
+    read finished_date 0<&3 || true
     exec 3<&-
 else
     status="incomplete"
@@ -46,19 +51,27 @@ fi
 echo "status=$status arg=$arg" >> tej.log
 
 if [ "$status" = running ]; then
-    echo "Job is still running" >> tej.log
+    runtime="$(format_timedelta $(($(date +%s) - $started_date)))"
+    echo "Job is still running ($runtime)" >> tej.log
+    echo "Job is still running ($runtime)" >&2
     cd "$job_root/stage"
     pwd
     exit 2
-elif [ "$status" = incomplete ]; then
-    echo "Job is incomplete" >> tej.log
-    echo "Job is incomplete (submission aborted?)" >&2
-    cd "$job_root/stage"
-    pwd
-    exit 1
-else  # [ "$status" = finished ]
+elif [ "$status" = finished ]; then
+    runtime="$(format_timedelta $(($finished_date - $started_date)))"
+    echo "Job is done ($runtime)" >> tej.log
+    echo "Job is done ($runtime)" >&2
     cd "$job_root/stage"
     pwd
     echo "$arg"
     exit 0
+else  # [ "$status" = incomplete -o "$status" = created ]
+    echo "Job is incomplete (created $started_date)" >> tej.log
+    echo "Job is incomplete (submission aborted?)" >&2
+    if [ -n "$started_date" ]; then
+        echo "Created $(date "--date=$started_date")" >&2
+    fi
+    cd "$job_root/stage"
+    pwd
+    exit 1
 fi
