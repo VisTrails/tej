@@ -80,13 +80,13 @@ class Queue(Module):
     _output_ports = [('queue', '(org.vistrails.extra.tej:Queue)')]
 
     def compute(self):
-        destination = self.get_input('hostname')
+        destination_str = self.get_input('hostname')
         if self.has_input('username') or self.has_input('port'):
-            destination = {'hostname': destination,
+            destination = {'hostname': destination_str,
                            'username': self.get_input('username'),
                            'port': self.get_input('port')}
+            destination_str = tej.destination_as_string(destination)
 
-        destination_str = tej.destination_as_string(destination)
         queue = self.get_input('queue')
         self.set_output('queue', QueueCache.get(destination_str, queue))
 
