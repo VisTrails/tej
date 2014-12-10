@@ -9,6 +9,7 @@ import re
 from rpaths import PosixPath, Path
 import scp
 import select
+import socket
 import string
 
 from tej.utils import string_types, iteritems, irange
@@ -207,7 +208,7 @@ class RemoteQueue(object):
                                           "hostname")
             self.destination = destination
         self.queue = PosixPath(queue)
-        self.ssh = None
+        self._ssh = None
         self._connect()
 
     def server_logger(self):
@@ -225,14 +226,32 @@ class RemoteQueue(object):
     def _connect(self):
         """Connects via SSH.
         """
-        self.ssh = paramiko.SSHClient()
-        self.ssh.load_system_host_keys()
-        self.ssh.set_missing_host_key_policy(paramiko.RejectPolicy())
+        self._ssh = paramiko.SSHClient()
+        self._ssh.load_system_host_keys()
+        self._ssh.set_missing_host_key_policy(paramiko.RejectPolicy())
         logger.debug("Connecting with %s",
                      ', '.join('%s=%r' % i
                                for i in iteritems(self.destination)))
-        self.ssh.connect(**self.destination)
+        self._ssh.connect(**self.destination)
         logger.debug("Connected to %s", self.destination['hostname'])
+
+    def get_client(self):
+        """Gets the SSH client.
+
+        This will check that the connection is still alive first, and reconnect
+        if necessary.
+        """
+        if self._ssh is None:
+            self._connect()
+            return self._ssh
+        else:
+            try:
+                self._ssh.get_transport().open_session()
+            except (socket.error, paramiko.SSHException):
+                logger.warning("Lost connection, reconnecting...")
+                self._ssh.close()
+                self._connect()
+            return self._ssh
 
     def _call(self, cmd, get_output):
         """Calls a command through the SSH connection.
@@ -242,7 +261,7 @@ class RemoteQueue(object):
         """
         server_err = self.server_logger()
 
-        chan = self.ssh.get_transport().open_session()
+        chan = self.get_client().get_transport().open_session()
         try:
             logger.debug("Invoking %r%s",
                          cmd, " (stdout)" if get_output else "")
@@ -387,7 +406,7 @@ class RemoteQueue(object):
         logger.debug("Resolved to %s", queue)
 
         # Uploads runtime
-        scp_client = scp.SCPClient(self.ssh.get_transport())
+        scp_client = scp.SCPClient(self.get_client().get_transport())
         filename = pkg_resources.resource_filename('tej', 'remotes/default')
         scp_client.put(filename, str(queue), recursive=True)
         logger.debug("Files uploaded")
@@ -429,7 +448,7 @@ class RemoteQueue(object):
         logger.debug("Server created directory %s", target)
 
         # Upload to directory
-        scp_client = scp.SCPClient(self.ssh.get_transport())
+        scp_client = scp.SCPClient(self.get_client().get_transport())
         scp_client.put([str(p) for p in Path(directory).listdir()],
                        str(target),
                        recursive=True)
@@ -491,7 +510,7 @@ class RemoteQueue(object):
         # Might raise JobNotFound
         status, target, result = self.status(job_id)
 
-        scp_client = scp.SCPClient(self.ssh.get_transport())
+        scp_client = scp.SCPClient(self.get_client().get_transport())
         for filename in files:
             logger.info("Downloading %s", target / filename)
             if directory:
