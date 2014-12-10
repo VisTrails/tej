@@ -11,6 +11,8 @@
 #   1. script filename
 #
 
+set -e
+
 (date; echo "start $@"; pwd) >> "$(dirname "$0")/../tej.log"
 
 job_dir="$(pwd)"
@@ -20,14 +22,13 @@ script="$1"
 # Starts program
 chmod +x "$script" 2>&1
 script="$(dirname "$script")/$(basename "$script")"
-"$script" &
+"$script" >_stdout 2>_stderr </dev/null &
 pid=$!
 
 # Writes status file
 (echo "running"; echo $pid) > ../status
 
-wait $pid
-exitcode=$?
+wait $pid && exitcode=0 || exitcode=$?
 
 (date; echo "finished $@"; echo $exitcode) >> "$(dirname "$0")/../tej.log"
 

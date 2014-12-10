@@ -16,6 +16,8 @@
 #   If "0", prints exit code on stdout
 #
 
+set -e
+
 # Inputs
 job_id="$1"
 
@@ -35,7 +37,7 @@ if [ -f "$job_root/status" ]; then
     # Reads two lines from file
     exec 3<"$job_root/status"
     read status 0<&3
-    read arg 0<&3
+    read arg 0<&3 || true
     exec 3<&-
 else
     status="incomplete"
@@ -54,9 +56,9 @@ elif [ "$status" = incomplete ]; then
     cd "$job_root/stage"
     pwd
     exit 1
-else
+else  # [ "$status" = finished ]
     cd "$job_root/stage"
     pwd
-    echo $arg
+    echo "$arg"
     exit 0
 fi

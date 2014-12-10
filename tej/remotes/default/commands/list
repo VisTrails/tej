@@ -20,7 +20,9 @@
 #           ...
 #
 
-cd "$(dirname $0)/../jobs"
+set -e
+
+cd "$(dirname "$0")/../jobs"
 
 (date; echo "list") >> tej.log
 
@@ -34,6 +36,6 @@ for job in *; do
         status="incomplete"
     fi
 
-    echo "id=$job status=$status arg=$arg" >> tej.log
+    echo "id=$job status=$status" >> tej.log
     echo "    status: $status"
 done

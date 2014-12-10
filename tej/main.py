@@ -56,21 +56,21 @@ def _status(args):
         queue = RemoteQueue(args.destination, args.queue)
         status, directory, arg = queue.status(args.id)
         if status == RemoteQueue.JOB_DONE:
-            print("finished")
+            sys.stdout.write("finished")
         elif status == RemoteQueue.JOB_RUNNING:
-            print("running")
+            sys.stdout.write("running")
         else:
             raise RuntimeError("Got unknown job status %r" % status)
         if arg is not None:
-            sys.stdout.flush()
-            sys.stdout.buffer.write(arg + b'\n')
+            sys.stdout.write(' %s' % arg)
+        sys.stdout.write('\n')
     except JobNotFound:
         print("not found")
 
 
 def _download(args):
     RemoteQueue(args.destination, args.queue).download(args.id, args.files,
-                                                       destination='.')
+                                                       directory='.')
 
 
 def _kill(args):
