@@ -449,7 +449,7 @@ class RemoteQueue(object):
 
         # Upload to directory
         scp_client = scp.SCPClient(self.get_client().get_transport())
-        scp_client.put([str(p) for p in Path(directory).listdir()],
+        scp_client.put(str(Path(directory)),
                        str(target),
                        recursive=True)
         logger.debug("Files uploaded")
