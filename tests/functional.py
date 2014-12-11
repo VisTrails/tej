@@ -89,11 +89,17 @@ def functional_tests():
     try:
         with jobdir.open('w', 'start.sh', newline='\n') as fp:
             fp.write('#!/bin/sh\n'
+                     '[ -f dir1/data1 ] || exit 1\n'
+                     '[ "$(cat dir2/dir3/data2)" = data2 ] || exit 2\n'
                      'echo "stdout here"\n'
                      'while ! [ -e ~/tej2/job1done ]; do\n'
                      '    sleep 1\n'
                      'done\n'
                      'echo "job output" > job1results\n')
+        with jobdir.mkdir('dir1').open('wb', 'data1') as fp:
+            fp.write(b'data1\n')
+        with jobdir.mkdir('dir2').mkdir('dir3').open('w', 'data2') as fp:
+            fp.write('data2\n')
         job_id = check_output(['tej', 'submit', destination, jobdir.path])
         job_id = job_id.rstrip().decode('ascii')
     finally:
