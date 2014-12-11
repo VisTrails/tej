@@ -37,9 +37,8 @@ if ! mkdir "$job_root" 2>/dev/null; then
     fi
 fi
 job_dir="$job_root/stage"
-mkdir "$job_dir"
 
 # Prints out the name of the new directory, where the job is to be uploaded
-cd "$job_dir"
-pwd >> "$(dirname "$0")/../tej.log"
-pwd
+cd "$job_root"
+echo "$(pwd)/stage" >> "$(dirname "$0")/../tej.log"
+echo "$(pwd)/stage"
