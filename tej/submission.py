@@ -246,11 +246,13 @@ class RemoteQueue(object):
             return self._ssh
         else:
             try:
-                self._ssh.get_transport().open_session()
+                chan = self._ssh.get_transport().open_session()
             except (socket.error, paramiko.SSHException):
                 logger.warning("Lost connection, reconnecting...")
                 self._ssh.close()
                 self._connect()
+            else:
+                chan.close()
             return self._ssh
 
     def _call(self, cmd, get_output):
