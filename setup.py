@@ -23,7 +23,7 @@ req = ['paramiko', 'rpaths', 'scp']
 if sys.version_info < (2, 7):
     req.append('argparse')
 setup(name='tej',
-      version='0.1',
+      version='0.2',
       packages=['tej'],
       package_data={'tej': list_files('remotes/default', 'tej')},
       entry_points={
@@ -40,7 +40,7 @@ setup(name='tej',
       license='BSD',
       keywords=['tej', 'job', 'submission', 'queue', 'batch', 'ssh', 'server'],
       classifiers=[
-          'Development Status :: 2 - Pre-Alpha',
+          'Development Status :: 4 - Beta',
           'Environment :: Console',
           'Intended Audience :: Information Technology',
           'Intended Audience :: Science/Research',
