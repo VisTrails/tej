@@ -26,6 +26,7 @@ setup(name='tej',
       version='0.2',
       packages=['tej'],
       package_data={'tej': list_files('remotes/default', 'tej')},
+      include_package_data=True,
       entry_points={
           'console_scripts': [
               'tej = tej.main:main']},
