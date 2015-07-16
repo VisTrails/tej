@@ -71,7 +71,7 @@ else  # [ "$status" = incomplete -o "$status" = created ]
     if [ -n "$started_date" ]; then
         echo "Created $(date "--date=$started_date")" >&2
     fi
-    cd "$job_root/stage"
-    pwd
+    cd "$job_root"
+    echo "$(pwd)/stage"
     exit 1
 fi

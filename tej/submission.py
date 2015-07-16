@@ -455,10 +455,17 @@ class RemoteQueue(object):
         logger.debug("Server created directory %s", target)
 
         # Upload to directory
-        scp_client = scp.SCPClient(self.get_client().get_transport())
-        scp_client.put(str(Path(directory)),
-                       str(target),
-                       recursive=True)
+        try:
+            scp_client = scp.SCPClient(self.get_client().get_transport())
+            scp_client.put(str(Path(directory)),
+                           str(target),
+                           recursive=True)
+        except BaseException as e:
+            try:
+                self.delete(job_id)
+            except:
+                raise e
+            raise
         logger.debug("Files uploaded")
 
         # Submit job
