@@ -191,6 +191,16 @@ class ServerLogger(object):
         self.logger.warning(data)
 
 
+JOB_ID_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
+               "abcdefghijklmnopqrstuvwxyz" \
+               "0123456789_-+=@%:.,"
+
+
+def check_jobid(job_id):
+    if not all(c in JOB_ID_CHARS for c in job_id):
+        raise ValueError("Invalid job identifier")
+
+
 class RemoteQueue(object):
     JOB_DONE = 0
     JOB_RUNNING = 2
@@ -430,14 +440,16 @@ class RemoteQueue(object):
         If the runtime is not there, it will be installed. If it is a broken
         chain of links, error.
         """
-        queue = self._get_queue()
-        if queue is None:
-            queue = self._setup()
-
         if job_id is None:
             job_id = '%s_%s_%s' % (Path(directory).unicodename,
                                    self.destination['username'],
                                    make_unique_name())
+        else:
+            check_jobid(job_id)
+
+        queue = self._get_queue()
+        if queue is None:
+            queue = self._setup()
 
         if script is None:
             script = 'start.sh'
@@ -478,6 +490,8 @@ class RemoteQueue(object):
     def status(self, job_id):
         """Gets the status of a previously-submitted job.
         """
+        check_jobid(job_id)
+
         queue = self._get_queue()
         if queue is None:
             raise QueueDoesntExist
@@ -501,6 +515,8 @@ class RemoteQueue(object):
     def download(self, job_id, files, **kwargs):
         """Downloads files from server.
         """
+        check_jobid(job_id)
+
         if not files:
             return
         if isinstance(files, string_types):
@@ -539,6 +555,8 @@ class RemoteQueue(object):
     def kill(self, job_id):
         """Kills a job on the server.
         """
+        check_jobid(job_id)
+
         queue = self._get_queue()
         if queue is None:
             raise QueueDoesntExist
@@ -555,6 +573,8 @@ class RemoteQueue(object):
     def delete(self, job_id):
         """Deletes a job from the server.
         """
+        check_jobid(job_id)
+
         queue = self._get_queue()
         if queue is None:
             raise QueueDoesntExist
