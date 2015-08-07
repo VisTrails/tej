@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 
 import argparse
 import codecs
+import functools
 import locale
 import logging
 import sys
@@ -37,6 +38,16 @@ def setup_logging(verbosity):
     server.addHandler(raw_console)
 
 
+def needs_job_id(f):
+    @functools.wraps(f)
+    def wrapped(args):
+        if args.id is None:
+            logger.critical("Missing job identifier")
+            sys.exit(1)
+        return f(args)
+    return wrapped
+
+
 def _setup(args):
     RemoteQueue(args.destination, args.queue).setup(args.make_link, args.force,
                                                     args.only_links)
@@ -48,10 +59,8 @@ def _submit(args):
     print(job_id)
 
 
+@needs_job_id
 def _status(args):
-    if args.id is None:
-        logger.critical("Missing job identifier")
-        sys.exit(1)
     try:
         queue = RemoteQueue(args.destination, args.queue)
         status, directory, arg = queue.status(args.id)
@@ -68,15 +77,18 @@ def _status(args):
         print("not found")
 
 
+@needs_job_id
 def _download(args):
     RemoteQueue(args.destination, args.queue).download(args.id, args.files,
                                                        directory='.')
 
 
+@needs_job_id
 def _kill(args):
     RemoteQueue(args.destination, args.queue).kill(args.id)
 
 
+@needs_job_id
 def _delete(args):
     RemoteQueue(args.destination, args.queue).delete(args.id)
 
