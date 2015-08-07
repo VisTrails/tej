@@ -590,3 +590,5 @@ class RemoteQueue(object):
                     yield job_id, info
                 job_id = line
                 info = {}
+        if job_id is not None:
+            yield job_id, info

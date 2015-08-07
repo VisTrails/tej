@@ -26,7 +26,7 @@ cd "$(dirname "$0")/../jobs"
 
 (date; echo "list") >> ../tej.log
 
-for job in *; do
+for job in $(ls); do
     echo "$job"
 
     # Reads first line of file
