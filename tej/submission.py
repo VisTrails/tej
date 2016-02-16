@@ -16,7 +16,7 @@ from tej.utils import string_types, iteritems, irange
 
 
 __all__ = ['DEFAULT_TEJ_DIR',
-           'Error', 'InvalidDestionation', 'QueueDoesntExist',
+           'Error', 'InvalidDestination', 'QueueDoesntExist',
            'QueueLinkBroken', 'QueueExists', 'JobAlreadyExists', 'JobNotFound',
            'JobStillRunning', 'RemoteCommandFailure',
            'parse_ssh_destination', 'destination_as_string',
@@ -31,11 +31,14 @@ class Error(Exception):
     """
 
 
-class InvalidDestionation(Error):
+class InvalidDestination(Error):
     """Invalid SSH destination.
     """
     def __init__(self, msg="Invalid destination"):
-        super(InvalidDestionation, self).__init__(msg)
+        super(InvalidDestination, self).__init__(msg)
+
+# Backward compatibility
+InvalidDestionation = InvalidDestination
 
 
 class QueueDoesntExist(Error):
@@ -144,7 +147,7 @@ def parse_ssh_destination(destination):
     """
     match = _re_ssh.match(destination)
     if not match:
-        raise InvalidDestionation("Invalid destination: %s" % destination)
+        raise InvalidDestination("Invalid destination: %s" % destination)
     user, host, port = match.groups()
     info = {}
     if user:
@@ -210,11 +213,11 @@ class RemoteQueue(object):
             try:
                 self.destination = parse_ssh_destination(destination)
             except ValueError:
-                raise InvalidDestionation("Can't parse SSH destination %s" %
+                raise InvalidDestination("Can't parse SSH destination %s" %
                                           destination)
         else:
             if 'hostname' not in destination:
-                raise InvalidDestionation("destination dictionary is missing "
+                raise InvalidDestination("destination dictionary is missing "
                                           "hostname")
             self.destination = destination
         self.queue = PosixPath(queue)
