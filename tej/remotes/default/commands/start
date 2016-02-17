@@ -27,13 +27,13 @@ pid=$!
 
 # Writes status file
 started_date=$(date +%s)
-(echo "running"; echo $pid; echo "$started_date") > ../status
+(echo "running"; echo $pid; echo "$started_date"; echo '') > ../status
 
 wait $pid && exitcode=0 || exitcode=$?
 
 (date; echo "finished $@"; echo $exitcode) >> "$(dirname "$0")/../tej.log"
 
 # Updates status file
-(echo "finished"; echo $exitcode; echo "$started_date"; date +%s) > ../status
+(echo "finished"; echo $exitcode; echo "$started_date"; date "+%s") > ../status
 
 exit 0

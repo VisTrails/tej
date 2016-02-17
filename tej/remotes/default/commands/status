@@ -37,7 +37,7 @@ if ! [ -d "$job_root" ]; then
 fi
 
 if [ -f "$job_root/status" ]; then
-    # Reads two lines from file
+    # Reads lines from file
     exec 3<"$job_root/status"
     read status 0<&3
     read arg 0<&3 || true
