@@ -333,7 +333,7 @@ class RemoteQueue(object):
             logger.debug("resolve_queue(%s)", queue)
         answer = self.check_output(
                 'if [ -d %(queue)s ]; then '
-                '    cd %(queue)s; echo "dir: $(pwd)"; '
+                '    cd %(queue)s; echo "dir"; cat version; pwd; '
                 'elif [ -f %(queue)s ]; then '
                 '    cat %(queue)s; '
                 'else '
@@ -346,10 +346,15 @@ class RemoteQueue(object):
             else:
                 logger.debug("Path doesn't exist")
             return None, depth
-        elif answer.startswith(b'dir: '):
-            new = PosixPath(answer[5:])
-            logger.debug("Found directory at %s, depth=%d", new, depth)
-            return new, depth
+        elif answer.startswith(b'dir\n'):
+            version, runtime, path = answer[4:].split(b'\n', 2)
+            if version != b'0.2':
+                raise QueueExists(
+                    msg="Queue exists and is using incompatible protocol "
+                        "version %s" % version.decode('ascii', 'replace'))
+            path = PosixPath(path)
+            logger.debug("Found directory at %s, depth=%d", path, depth)
+            return path, depth
         elif answer.startswith(b'tejdir: '):
             new = queue.parent / answer[8:]
             logger.debug("Found link to %s, recursing", new)
