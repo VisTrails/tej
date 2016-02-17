@@ -370,8 +370,7 @@ class RemoteQueue(object):
     def setup(self, links=None, force=False, only_links=False):
         """Installs the runtime at the target location.
 
-        This will not replace an existing installation, unless it is a broken
-        chain of links or `force` is True.
+        This will not replace an existing installation, unless `force` is True.
 
         After installation, creates links to this installation at the specified
         locations.
