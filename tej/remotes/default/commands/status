@@ -53,7 +53,7 @@ echo "status=$status arg=$arg" >> tej.log
 if [ "$status" = running ]; then
     runtime="$(format_timedelta $(($(date +%s) - $started_date)))"
     echo "Job is still running ($runtime)" >> tej.log
-    echo "Job is still running ($runtime)" >&2
+    echo "Job is still running ($runtime); pid=$arg" >&2
     cd "$job_root/stage"
     pwd
     exit 2
