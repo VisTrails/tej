@@ -6,11 +6,11 @@ import unittest
 class TestTimeDelta(unittest.TestCase):
     def call_function(self, delta):
         p = subprocess.Popen(
-                ['/bin/sh', '-s', '%d' % delta],
-                cwd=(Path(__file__).parent.parent /
-                     'tej/remotes/default/commands').path,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE)
+            ['/bin/sh', '-s', '%d' % delta],
+            cwd=(Path(__file__).parent.parent /
+                 'tej/remotes/default/commands').path,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE)
         stdout, stderr = p.communicate(b"""
 #!/bin/sh
 set -e

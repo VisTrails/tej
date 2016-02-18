@@ -55,7 +55,7 @@ def _setup(args):
 
 def _submit(args):
     job_id = RemoteQueue(args.destination, args.queue).submit(
-                         args.id, args.directory, args.script)
+        args.id, args.directory, args.script)
     print(job_id)
 
 
@@ -127,8 +127,8 @@ def main():
 
     # Root parser
     parser = argparse.ArgumentParser(
-            description="Trivial Extensible Job-submission",
-            parents=[options])
+        description="Trivial Extensible Job-submission",
+        parents=[options])
     subparsers = parser.add_subparsers(title='commands', metavar='')
 
     # Destination selection
@@ -141,8 +141,8 @@ def main():
 
     # Setup action
     parser_setup = subparsers.add_parser(
-            'setup', parents=[options, options_dest],
-            help="Sets up tej on a remote machine")
+        'setup', parents=[options, options_dest],
+        help="Sets up tej on a remote machine")
     parser_setup.add_argument('--make-link', action='append',
                               dest='make_link')
     parser_setup.add_argument('--make-default-link', action='append_const',
@@ -153,8 +153,8 @@ def main():
 
     # Submit action
     parser_submit = subparsers.add_parser(
-            'submit', parents=[options, options_dest],
-            help="Submits a job to a remote machine")
+        'submit', parents=[options, options_dest],
+        help="Submits a job to a remote machine")
     parser_submit.add_argument('--id', action='store',
                                help="Identifier for the new job")
     parser_submit.add_argument('--script', action='store',
@@ -166,16 +166,16 @@ def main():
 
     # Status action
     parser_status = subparsers.add_parser(
-            'status', parents=[options, options_dest],
-            help="Gets the status of a job")
+        'status', parents=[options, options_dest],
+        help="Gets the status of a job")
     parser_status.add_argument('--id', action='store',
                                help="Identifier of the running job")
     parser_status.set_defaults(func=_status)
 
     # Download action
     parser_download = subparsers.add_parser(
-            'download', parents=[options, options_dest],
-            help="Downloads files from finished job")
+        'download', parents=[options, options_dest],
+        help="Downloads files from finished job")
     parser_download.add_argument('--id', action='store',
                                  help="Identifier of the job")
     parser_download.add_argument('files', action='store',
@@ -185,24 +185,24 @@ def main():
 
     # Kill action
     parser_kill = subparsers.add_parser(
-            'kill', parents=[options, options_dest],
-            help="Kills a running job")
+        'kill', parents=[options, options_dest],
+        help="Kills a running job")
     parser_kill.add_argument('--id', action='store',
                              help="Identifier of the running job")
     parser_kill.set_defaults(func=_kill)
 
     # Delete action
     parser_delete = subparsers.add_parser(
-            'delete', parents=[options, options_dest],
-            help="Deletes a finished job")
+        'delete', parents=[options, options_dest],
+        help="Deletes a finished job")
     parser_delete.add_argument('--id', action='store',
                                help="Identifier of the finished job")
     parser_delete.set_defaults(func=_delete)
 
     # List action
     parser_list = subparsers.add_parser(
-            'list', parents=[options, options_dest],
-            help="Lists remote jobs")
+        'list', parents=[options, options_dest],
+        help="Lists remote jobs")
     parser_list.set_defaults(func=_list)
 
     args = parser.parse_args()

@@ -18,17 +18,17 @@ if top_level not in sys.path:
 sys.path.append(start_dir)
 
 
-from tej.main import setup_logging
+from tej.main import setup_logging              # noqa
 
-from tests.functional import functional_tests
+from tests.functional import functional_tests   # noqa
 
 
 class Program(unittest.TestProgram):
     def createTests(self):
         if self.testNames is None:
             self.test = self.testLoader.discover(
-                    start_dir=os.path.dirname(os.path.abspath(__file__)),
-                    pattern='test_*.py')
+                start_dir=os.path.dirname(os.path.abspath(__file__)),
+                pattern='test_*.py')
         else:
             self.test = self.testLoader.loadTestsFromNames(self.testNames)
 
