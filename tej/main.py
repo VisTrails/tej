@@ -117,32 +117,28 @@ def main():
 
     # Parses command-line
 
-    # General options
-    options = argparse.ArgumentParser(add_help=False)
-    options.add_argument('--version', action='version',
-                         version="tej version %s" % tej_version)
-    options.add_argument('-v', '--verbose', action='count', default=1,
-                         dest='verbosity',
-                         help="augments verbosity level")
+    # Destination selection
+    def add_destination_option(opt):
+        opt.add_argument('destination', action='store',
+                         help="Machine to SSH into; [user@]host[:port]")
+        opt.add_argument('--queue', action='store', default=DEFAULT_TEJ_DIR,
+                         help="Directory for tej's files")
 
     # Root parser
     parser = argparse.ArgumentParser(
-        description="Trivial Extensible Job-submission",
-        parents=[options])
-    subparsers = parser.add_subparsers(title='commands', metavar='')
-
-    # Destination selection
-    options_dest = argparse.ArgumentParser(add_help=False)
-    options_dest.add_argument('destination', action='store',
-                              help="Machine to SSH into; [user@]host[:port]")
-    options_dest.add_argument('--queue', action='store',
-                              default=DEFAULT_TEJ_DIR,
-                              help="Directory for tej's files")
+        description="Trivial Extensible Job-submission")
+    parser.add_argument('--version', action='version',
+                        version="tej version %s" % tej_version)
+    parser.add_argument('-v', '--verbose', action='count', default=1,
+                        dest='verbosity',
+                        help="augments verbosity level")
+    subparsers = parser.add_subparsers(title="commands", metavar='')
 
     # Setup action
     parser_setup = subparsers.add_parser(
-        'setup', parents=[options, options_dest],
+        'setup',
         help="Sets up tej on a remote machine")
+    add_destination_option(parser_setup)
     parser_setup.add_argument('--make-link', action='append',
                               dest='make_link')
     parser_setup.add_argument('--make-default-link', action='append_const',
@@ -153,8 +149,9 @@ def main():
 
     # Submit action
     parser_submit = subparsers.add_parser(
-        'submit', parents=[options, options_dest],
+        'submit',
         help="Submits a job to a remote machine")
+    add_destination_option(parser_submit)
     parser_submit.add_argument('--id', action='store',
                                help="Identifier for the new job")
     parser_submit.add_argument('--script', action='store',
@@ -166,16 +163,18 @@ def main():
 
     # Status action
     parser_status = subparsers.add_parser(
-        'status', parents=[options, options_dest],
+        'status',
         help="Gets the status of a job")
+    add_destination_option(parser_status)
     parser_status.add_argument('--id', action='store',
                                help="Identifier of the running job")
     parser_status.set_defaults(func=_status)
 
     # Download action
     parser_download = subparsers.add_parser(
-        'download', parents=[options, options_dest],
+        'download',
         help="Downloads files from finished job")
+    add_destination_option(parser_download)
     parser_download.add_argument('--id', action='store',
                                  help="Identifier of the job")
     parser_download.add_argument('files', action='store',
@@ -185,24 +184,27 @@ def main():
 
     # Kill action
     parser_kill = subparsers.add_parser(
-        'kill', parents=[options, options_dest],
+        'kill',
         help="Kills a running job")
+    add_destination_option(parser_kill)
     parser_kill.add_argument('--id', action='store',
                              help="Identifier of the running job")
     parser_kill.set_defaults(func=_kill)
 
     # Delete action
     parser_delete = subparsers.add_parser(
-        'delete', parents=[options, options_dest],
+        'delete',
         help="Deletes a finished job")
+    add_destination_option(parser_delete)
     parser_delete.add_argument('--id', action='store',
                                help="Identifier of the finished job")
     parser_delete.set_defaults(func=_delete)
 
     # List action
     parser_list = subparsers.add_parser(
-        'list', parents=[options, options_dest],
+        'list',
         help="Lists remote jobs")
+    add_destination_option(parser_list)
     parser_list.set_defaults(func=_list)
 
     args = parser.parse_args()
