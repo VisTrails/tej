@@ -46,7 +46,12 @@ def functional_tests():
     destination = os.environ['TEJ_DESTINATION']
     logging.info("Using TEJ_DESTINATION %s" % destination)
 
-    tej = ['tej', '-v', '-v']
+    if 'COVER' in os.environ:
+        tej = os.environ['COVER'].split(' ') + [
+            bytes(Path.cwd() / 'tej/__main__.py'),
+            '-v', '-v']
+    else:
+        tej = ['tej', '-v', '-v']
 
     for path in ('~/.tej', '~/tej2'):
         path = Path(path).expand_user()

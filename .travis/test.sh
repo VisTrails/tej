@@ -10,7 +10,9 @@ in
         python tests
     ;;
     coverage)
-        coverage run --source=tej --branch tests/__main__.py
+        export COVER="coverage run -p --source=tej,tests --branch"
+        coverage run -p --source=tej,tests --branch tests/__main__.py
+        coverage combine
         codecov
     ;;
     flake8)
