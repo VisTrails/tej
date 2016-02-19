@@ -1,0 +1,41 @@
+#!/bin/sh
+
+#
+# This file is part of tej
+# https://github.com/VisTrails/tej
+#
+# Job listing script
+# Started on the server to get the list of all jobs
+#
+# No arguments
+#
+# Returns:
+#   0
+#   On stdout, prints:
+#       job_id_1
+#           status: done
+#           key1: value1
+#       job_id_2
+#           status: running
+#           ...
+#
+
+set -e
+
+cd "$(dirname "$0")/../jobs"
+
+(date; echo "list") >> ../tej.log
+
+for job in $(ls); do
+    echo "$job"
+
+    # Reads first line of file
+    if [ -f "$job/status" ]; then
+        read status < "$job/status"
+    else
+        status="incomplete"
+    fi
+
+    echo "id=$job status=$status" >> ../tej.log
+    echo "    status: $status"
+done

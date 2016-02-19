@@ -1,0 +1,50 @@
+#!/bin/sh
+
+#
+# This file is part of tej
+# https://github.com/VisTrails/tej
+#
+# Job deletion script
+# Started on the server to delete a job
+#
+# Arguments:
+#   1. job ID
+#
+# Returns:
+#   0 if job was removed, 2 if job is stiff running (use kill), 3 if there is
+#   no such job (already removed?)
+#
+
+set -e
+
+# Inputs
+job_id="$1"
+
+cd "$(dirname "$0")/.."
+
+(date; echo "delete $@") >> tej.log
+
+job_root="jobs/$job_id"
+
+if ! [ -d "$job_root" ]; then
+    echo "No job '$job_id'" >&2
+    echo "No such job" >> tej.log
+    exit 3
+fi
+
+# Reads status from file
+read status < "$job_root/status"
+
+echo "status=$status arg=$arg" >> tej.log
+
+if [ "$status" = running ]; then
+    echo "Job is still running" >&2
+    echo "Job is still running" >> tej.log
+    exit 2
+elif [ "$status" = submitted ]; then
+    echo "Job is still in the queue" >&2
+    echo "Job is still in the queue" >> tej.log
+else
+    rm -Rf "$job_root"
+    exit 0
+fi

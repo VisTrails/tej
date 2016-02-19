@@ -1,0 +1,88 @@
+#!/bin/sh
+
+#
+# This file is part of tej
+# https://github.com/VisTrails/tej
+#
+# Job status script
+# Started on the server to get the status of a job
+#
+# Arguments:
+#   1. job ID
+#
+# Returns:
+#   0 if job is done, 2 if job is still running, 3 if there is no such job
+#   (already removed?)
+#   If "0", prints exit code on stdout
+#
+
+set -e
+
+# Include
+. "$(dirname "$0")/lib/utils.sh"
+
+# Inputs
+job_id="$1"
+
+cd "$(dirname $0)/.."
+
+(date; echo "status $@") >> tej.log
+
+job_root="jobs/$job_id"
+
+if ! [ -d "$job_root" ]; then
+    echo "No job '$job_id'" >&2
+    echo "No such job" >> tej.log
+    exit 3
+fi
+
+if [ -f "$job_root/status" ]; then
+    # Reads lines from file
+    exec 3<"$job_root/status"
+    read status 0<&3
+    read arg 0<&3
+    read submitted_date 0<&3
+    read started_date 0<&3
+    read finished_date 0<&3
+    exec 3<&-
+else
+    status="incomplete"
+fi
+
+echo "status=$status arg=$arg" >> tej.log
+
+if [ "$status" = submitted ]; then
+    queue_time="$(format_timedelta $(($(date +%s) - $submitted_date)))"
+    echo "Job is in the queue ($queue_time)" >> tej.log
+    echo "Job is in the queue ($queue_time); PBS id is $arg" >&2
+    if [ -n "$submitted_date" ] && formatted="$(date "--date=@$submitted_date" 2>/dev/null)"; then
+        echo "Submitted date $formatted" >&2
+    fi
+    cd "$job_root/stage"
+    pwd
+    exit 2
+elif [ "$status" = running ]; then
+    runtime="$(format_timedelta $(($(date +%s) - $started_date)))"
+    echo "Job is still running ($runtime)" >> tej.log
+    echo "Job is still running ($runtime); PBS id is $arg" >&2
+    cd "$job_root/stage"
+    pwd
+    exit 2
+elif [ "$status" = finished ]; then
+    runtime="$(format_timedelta $(($finished_date - $started_date)))"
+    echo "Job is done ($runtime)" >> tej.log
+    echo "Job is done ($runtime)" >&2
+    cd "$job_root/stage"
+    pwd
+    echo "$arg"
+    exit 0
+elsee  # [ "$status" = incomplete -o "$status" = created ]
+    echo "Job is incomplete (created $started_date)" >> tej.log
+    echo "Job is incomplete (submission aborted?)" >&2
+    if [ -n "$started_date" ] && formatted="$(date "--date=@$started_date" 2>/dev/null)"; then
+        echo "Created date $formatted" >&2
+    fi
+    cd "$job_root"
+    echo "$(pwd)/stage"
+    exit 1
+fi

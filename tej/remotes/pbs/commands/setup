@@ -1,0 +1,28 @@
+#!/bin/sh
+
+#
+# This file is part of tej
+# https://github.com/VisTrails/tej
+#
+# Post-install script
+# Runs on the server after the runtime has been transferred
+#
+# No arguments
+#
+
+set -e
+
+cd "$(dirname $0)/.."
+
+(date; echo "setup $@") > tej.log
+
+# Empty directories are tricky
+if ! [ -d "jobs" ]; then
+    mkdir jobs
+fi
+
+# Fixes permissions
+chmod 700 .
+chmod 755 jobs
+chmod 755 commands
+chmod 755 commands/*

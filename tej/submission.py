@@ -218,8 +218,9 @@ class RemoteQueue(object):
         and files, and the scripts used to manage it on the server side.
         :param setup_runtime: The name of the runtime to deploy on the server
         if the queue doesn't already exist. If None (default), it will
-        auto-detect what is appropriate. If `need_runtime` is set, this should
-        be one of the accepted values.
+        auto-detect what is appropriate (currently, `pbs` if the ``qsub``
+        command is available), and fallback on `default`. If `need_runtime` is
+        set, this should be one of the accepted values.
         :param need_runtime: A list of runtime names that are acceptable. If
         the queue already exists on the server and this argument is not None,
         the installed runtime will be matched against it, and a failure will be
@@ -236,7 +237,7 @@ class RemoteQueue(object):
                 raise InvalidDestination("destination dictionary is missing "
                                          "hostname")
             self.destination = destination
-        if setup_runtime not in (None, 'default'):
+        if setup_runtime not in (None, 'default', 'pbs'):
             raise ValueError("Selected runtime %r is unknown" % setup_runtime)
         self.setup_runtime = setup_runtime
         if need_runtime is not None:
@@ -464,8 +465,12 @@ class RemoteQueue(object):
         # Select runtime
         if not self.setup_runtime:
             # Autoselect
-            logger.debug("Using runtime 'default'")
-            runtime = 'default'
+            if self._call('which qsub', False)[0] == 0:
+                logger.debug("qsub is available, using runtime 'pbs'")
+                runtime = 'pbs'
+            else:
+                logger.debug("qsub not found, using runtime 'default'")
+                runtime = 'default'
         else:
             runtime = self.setup_runtime
 

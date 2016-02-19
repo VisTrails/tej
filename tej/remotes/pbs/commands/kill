@@ -1,0 +1,59 @@
+#!/bin/sh
+
+#
+# This file is part of tej
+# https://github.com/VisTrails/tej
+#
+# Job killing script
+# Started on the server to kill a job
+#
+# Arguments:
+#   1. job ID
+#
+# Returns:
+#   0 if job was killed, 3 if there is no such job (already removed?)
+#
+
+set -e
+
+# Inputs
+job_id="$1"
+
+cd "$(dirname "$0")/.."
+
+(date; echo "kill $@") >> tej.log
+
+job_root="jobs/$job_id"
+
+if ! [ -d "$job_root" ]; then
+    echo "No job '$job_id'" >&2
+    echo "No such job" >> tej.log
+    exit 3
+fi
+
+# Reads two lines from file
+exec 3<"$job_root/status"
+read status 0<&3
+read arg 0<&3
+read submitted_date 0<&3
+read started_date 0<&3
+exec 3<&-
+
+echo "status=$status arg=$arg" >> tej.log
+
+if [ "$status" = submitted ] || [ "$status" = running ]; then
+    qdel $arg
+    if [ "$status" = submitted ]; then
+        echo "Job canceled" >&2
+        echo "Job canceled" >> tej.log
+    else
+        echo "Job aborted" >&2
+        echo "Job aborted" >> tej.log
+    fi
+    (echo "finished"; echo "-1"; echo "$submitted_date"; echo "$started_date"; date "+%s") > "$job_root"/status
+    exit 0
+else
+    echo "Job is not running" >&2
+    echo "Job is not running" >> tej.log
+    exit 0
+fi
