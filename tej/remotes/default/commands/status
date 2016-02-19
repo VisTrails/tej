@@ -40,9 +40,9 @@ if [ -f "$job_root/status" ]; then
     # Reads lines from file
     exec 3<"$job_root/status"
     read status 0<&3
-    read arg 0<&3 || true
-    read started_date 0<&3 || true
-    read finished_date 0<&3 || true
+    read arg 0<&3
+    read started_date 0<&3
+    read finished_date 0<&3
     exec 3<&-
 else
     status="incomplete"
