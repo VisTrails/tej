@@ -49,13 +49,14 @@ def needs_job_id(f):
 
 
 def _setup(args):
-    RemoteQueue(args.destination, args.queue).setup(args.make_link, args.force,
-                                                    args.only_links)
+    queue = RemoteQueue(args.destination, args.queue,
+                        setup_runtime=args.runtime)
+    queue.setup(args.make_link, args.force, args.only_links)
 
 
 def _submit(args):
-    job_id = RemoteQueue(args.destination, args.queue).submit(
-        args.id, args.directory, args.script)
+    queue = RemoteQueue(args.destination, args.queue)
+    job_id = queue.submit(args.id, args.directory, args.script)
     print(job_id)
 
 
@@ -117,6 +118,14 @@ def main():
 
     # Parses command-line
 
+    # Runtime to setup
+    def add_runtime_option(opt):
+        opt.add_argument(
+            '-r', '--runtime', action='store',
+            help="runtime to deploy on the server if the queue doesn't exist. "
+                 "If unspecified, will auto-detect what is appropriate, and "
+                 "fallback on 'default'.")
+
     # Destination selection
     def add_destination_option(opt):
         opt.add_argument('destination', action='store',
@@ -139,6 +148,7 @@ def main():
         'setup',
         help="Sets up tej on a remote machine")
     add_destination_option(parser_setup)
+    add_runtime_option(parser_setup)
     parser_setup.add_argument('--make-link', action='append',
                               dest='make_link')
     parser_setup.add_argument('--make-default-link', action='append_const',
@@ -152,6 +162,7 @@ def main():
         'submit',
         help="Submits a job to a remote machine")
     add_destination_option(parser_submit)
+    add_runtime_option(parser_submit)
     parser_submit.add_argument('--id', action='store',
                                help="Identifier for the new job")
     parser_submit.add_argument('--script', action='store',

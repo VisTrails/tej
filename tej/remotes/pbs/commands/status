@@ -41,6 +41,7 @@ if [ -f "$job_root/status" ]; then
     exec 3<"$job_root/status"
     read status 0<&3
     read arg 0<&3
+    read submitted_date 0<&3
     read started_date 0<&3
     read finished_date 0<&3
     exec 3<&-
@@ -50,10 +51,20 @@ fi
 
 echo "status=$status arg=$arg" >> tej.log
 
-if [ "$status" = running ]; then
+if [ "$status" = submitted ]; then
+    queue_time="$(format_timedelta $(($(date +%s) - $submitted_date)))"
+    echo "Job is in the queue ($queue_time)" >> tej.log
+    echo "Job is in the queue ($queue_time); PBS id is $arg" >&2
+    if [ -n "$submitted_date" ] && formatted="$(date "--date=@$submitted_date" 2>/dev/null)"; then
+        echo "Submitted date $formatted" >&2
+    fi
+    cd "$job_root/stage"
+    pwd
+    exit 2
+elif [ "$status" = running ]; then
     runtime="$(format_timedelta $(($(date +%s) - $started_date)))"
     echo "Job is still running ($runtime)" >> tej.log
-    echo "Job is still running ($runtime); pid=$arg" >&2
+    echo "Job is still running ($runtime); PBS id is $arg" >&2
     cd "$job_root/stage"
     pwd
     exit 2
@@ -65,11 +76,11 @@ elif [ "$status" = finished ]; then
     pwd
     echo "$arg"
     exit 0
-else  # [ "$status" = incomplete -o "$status" = created ]
+elsee  # [ "$status" = incomplete -o "$status" = created ]
     echo "Job is incomplete (created $started_date)" >> tej.log
     echo "Job is incomplete (submission aborted?)" >&2
     if [ -n "$started_date" ] && formatted="$(date "--date=@$started_date" 2>/dev/null)"; then
-        echo "Created $formatted" >&2
+        echo "Created date $formatted" >&2
     fi
     cd "$job_root"
     echo "$(pwd)/stage"

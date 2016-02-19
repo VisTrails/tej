@@ -1,0 +1,45 @@
+#!/bin/sh
+
+#
+# This file is part of tej
+# https://github.com/VisTrails/tej
+#
+# Job allocation script
+# Runs on the server before a job gets created
+#
+# Arguments:
+#   1. job ID
+#
+# Returns:
+#   0 if succeeded, 4 if job already exists
+#   If 0, prints out directory in which to upload job
+#
+
+set -e
+
+# Inputs
+job_id="$1"
+
+cd "$(dirname "$0")/.."
+
+(date; echo "new_job $@") >> tej.log
+
+# Creates directories
+job_root="jobs/$job_id"
+if ! mkdir "$job_root" 2>/dev/null; then
+    if [ -d "$job_root" ]; then
+        echo "Job already exists!" >> tej.log
+        echo "Job already exists!" >&2
+        exit 4
+    else
+        echo "Couldn't create job directory" >&2
+        exit 1
+    fi
+fi
+(echo "created"; echo ''; date "+%s"; echo ''; echo '') > "$job_root/status"
+job_dir="$job_root/stage"
+
+# Prints out the name of the new directory, where the job is to be uploaded
+cd "$job_root"
+echo "$(pwd)/stage" >> "$(dirname "$0")/../tej.log"
+echo "$(pwd)/stage"

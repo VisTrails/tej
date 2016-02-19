@@ -208,7 +208,24 @@ class RemoteQueue(object):
     JOB_DONE = 0
     JOB_RUNNING = 2
 
-    def __init__(self, destination, queue):
+    def __init__(self, destination, queue,
+                 setup_runtime=None, need_runtime=None):
+        """Creates a queue object, that represents a job queue on a server.
+
+        :param destination: The address of the server, used to SSH into it.
+        :param queue: The pathname of the queue on the remote server. Something
+        like "~/.tej" is usually adequate. This will contain both the job info
+        and files, and the scripts used to manage it on the server side.
+        :param setup_runtime: The name of the runtime to deploy on the server
+        if the queue doesn't already exist. If None (default), it will
+        auto-detect what is appropriate (currently, `pbs` if the ``qsub``
+        command is available), and fallback on `default`. If `need_runtime` is
+        set, this should be one of the accepted values.
+        :param need_runtime: A list of runtime names that are acceptable. If
+        the queue already exists on the server and this argument is not None,
+        the installed runtime will be matched against it, and a failure will be
+        reported if it is not one of the provided values.
+        """
         if isinstance(destination, string_types):
             try:
                 self.destination = parse_ssh_destination(destination)
@@ -220,6 +237,13 @@ class RemoteQueue(object):
                 raise InvalidDestination("destination dictionary is missing "
                                          "hostname")
             self.destination = destination
+        if setup_runtime not in (None, 'default', 'pbs'):
+            raise ValueError("Selected runtime %r is unknown" % setup_runtime)
+        self.setup_runtime = setup_runtime
+        if need_runtime is not None:
+            self.need_runtime = set(need_runtime)
+        else:
+            self.need_runtime = None
         self.queue = PosixPath(queue)
         self._ssh = None
         self._connect()
@@ -353,7 +377,15 @@ class RemoteQueue(object):
                     msg="Queue exists and is using incompatible protocol "
                         "version %s" % version.decode('ascii', 'replace'))
             path = PosixPath(path)
-            logger.debug("Found directory at %s, depth=%d", path, depth)
+            runtime = runtime.decode('ascii', 'replace')
+            if self.need_runtime is not None:
+                if (self.need_runtime is not None and
+                        runtime not in self.need_runtime):
+                    raise QueueExists(
+                        msg="Queue exists and is using explicitely disallowed "
+                            "runtime %s" % runtime)
+            logger.debug("Found directory at %s, depth=%d, runtime=%s",
+                         path, depth, runtime)
             return path, depth
         elif answer.startswith(b'tejdir: '):
             new = queue.parent / answer[8:]
@@ -422,16 +454,34 @@ class RemoteQueue(object):
     def _setup(self):
         """Actually installs the runtime.
         """
-        logger.info("Installing runtime at %s", self.queue)
+        logger.info("Installing runtime %s at %s",
+                    self.setup_runtime or "(auto)", self.queue)
 
         # Expands ~user in queue
         output = self.check_output('echo %s' % shell_escape(str(self.queue)))
         queue = PosixPath(output.rstrip(b'\r\n'))
         logger.debug("Resolved to %s", queue)
 
+        # Select runtime
+        if not self.setup_runtime:
+            # Autoselect
+            if self._call('which qsub', False)[0] == 0:
+                logger.debug("qsub is available, using runtime 'pbs'")
+                runtime = 'pbs'
+            else:
+                logger.debug("qsub not found, using runtime 'default'")
+                runtime = 'default'
+        else:
+            runtime = self.setup_runtime
+
+        if self.need_runtime is not None and runtime not in self.need_runtime:
+            raise ValueError("About to setup runtime %s but that wouldn't "
+                             "match explicitely allowed runtimes" % runtime)
+
         # Uploads runtime
         scp_client = scp.SCPClient(self.get_client().get_transport())
-        filename = pkg_resources.resource_filename('tej', 'remotes/default')
+        filename = pkg_resources.resource_filename('tej',
+                                                   'remotes/%s' % runtime)
         scp_client.put(filename, str(queue), recursive=True)
         logger.debug("Files uploaded")
 

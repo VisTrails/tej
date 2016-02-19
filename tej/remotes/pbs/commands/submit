@@ -1,0 +1,71 @@
+#!/bin/sh
+
+#
+# This file is part of tej
+# https://github.com/VisTrails/tej
+#
+# Job submission script
+# Runs on the server once the job has been transferred
+#
+# Arguments:
+#   1. job ID
+#   2. job directory, obtained from new_job
+#   3. script path (relative to job)
+#
+
+set -e
+
+# Include
+. "$(dirname "$0")/lib/utils.sh"
+
+# Inputs
+job_id="$1"
+job_dir="$(absolutepathname "$2")"
+script="$3"
+
+cd "$(dirname "$0")/.."
+
+(date; echo "submit $@") >> tej.log
+
+# Sanity check
+if ! [ -d "$job_dir" ]; then
+    echo "Job directory doesn't exist" >> tej.log
+    echo "Job directory doesn't exist" >&2
+    exit 1
+fi
+read status < "$job_dir/../status"
+if [ "$status" != created ]; then
+    echo "Job is already $status" >> tej.lob
+    echo "Invalid job status '$status'" >&2
+    exit 1
+fi
+
+# Write job file
+cd "$(dirname "$job_dir")"
+cat >tej_job.sh<<END
+#PBS -V
+#PBS -e localhost:\${PBS_O_WORKDIR}/stage/_stderr
+#PBS -e localhost:\${PBS_O_WORKDIR}/stage/_stderr
+#PBS -l nodes=1
+#PBS -N $(basename "$(dirname "$job_dir")")
+#PBS -S /bin/sh
+
+cd '$(dirname "$job_dir")'
+
+exec 3<status
+read status <&3
+read pbs_id <&3
+read submitted_date <&3
+exec 3<&-
+
+cd "stage"
+chmod +x "$script"
+started_date=$(date "+%s")
+(echo "started"; echo "\$pbs_id"; echo "\$submitted_date"; echo "\$started_date"; echo '') > ../status
+'./$script' </dev/null && exitcode=0 || exitcode=\$?
+(echo "finished"; echo "\$exitcode"; echo "\$submitted_date"; echo "\$started_date"; date "+%s") > ../status
+exit 0
+END
+
+pbs_id="$(qsub tej_job.sh)"
+(echo "submitted"; echo "$pbs_id"; date "+%s"; echo ''; echo '') > status

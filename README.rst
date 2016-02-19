@@ -26,14 +26,14 @@ default options)::
     $ tej setup user@server.hostna.me \
         --queue /scratch/tejqueue \
         --make-link ~/.tej \
-        --plugin default
+        --runtime default
 
 This takes a destination to SSH into, the location of tej's directory (there
 can be several on a server; by default, ``~/.tej`` is used), ``--make-link``
 creates a link so that future invocations will be redirected to
-``/scract/tejqueue``, and ``--plugin`` selects which plugins to setup on the
-server (since tej is extensible, other scheduling/running subsystems might be
-added in the future).
+``/scract/tejqueue``, and ``--runtime`` selects which runtime to setup on the
+server (since tej is extensible, multiple scheduling/running subsystems can be
+used).
 
 Submit a simple job::
 
