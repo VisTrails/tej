@@ -214,11 +214,11 @@ class RemoteQueue(object):
                 self.destination = parse_ssh_destination(destination)
             except ValueError:
                 raise InvalidDestination("Can't parse SSH destination %s" %
-                                          destination)
+                                         destination)
         else:
             if 'hostname' not in destination:
                 raise InvalidDestination("destination dictionary is missing "
-                                          "hostname")
+                                         "hostname")
             self.destination = destination
         self.queue = PosixPath(queue)
         self._ssh = None
@@ -332,14 +332,14 @@ class RemoteQueue(object):
         if depth == 0:
             logger.debug("resolve_queue(%s)", queue)
         answer = self.check_output(
-                'if [ -d %(queue)s ]; then '
-                '    cd %(queue)s; echo "dir"; cat version; pwd; '
-                'elif [ -f %(queue)s ]; then '
-                '    cat %(queue)s; '
-                'else '
-                '    echo no; '
-                'fi' % {
-                    'queue': shell_escape(bytes(queue))})
+            'if [ -d %(queue)s ]; then '
+            '    cd %(queue)s; echo "dir"; cat version; pwd; '
+            'elif [ -f %(queue)s ]; then '
+            '    cat %(queue)s; '
+            'else '
+            '    echo no; '
+            'fi' % {
+                'queue': shell_escape(bytes(queue))})
         if answer == b'no':
             if depth > 0:
                 logger.debug("Broken link at depth=%d", depth)
@@ -416,8 +416,8 @@ class RemoteQueue(object):
 
         for link in links:
             self.check_call('echo "tejdir:" %(queue)s > %(link)s' % {
-                    'queue': shell_escape(str(queue)),
-                    'link': shell_escape(link)})
+                'queue': shell_escape(str(queue)),
+                'link': shell_escape(link)})
 
     def _setup(self):
         """Actually installs the runtime.
