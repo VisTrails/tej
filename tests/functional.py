@@ -119,6 +119,9 @@ def functional_tests():
     finally:
         jobdir.rmtree()
 
+    logging.info("Check status while forgetting job id")
+    assert call(tej + ['status', destination]) != 0
+
     logging.info("Check status of running job")
     output = check_output(tej + ['status', destination, '--id', job_id])
     assert output == b'running\n'

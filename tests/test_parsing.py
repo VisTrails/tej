@@ -4,6 +4,7 @@ import getpass
 import unittest
 
 import tej.submission
+from tej.submission import InvalidDestination
 from tej.utils import irange, unicode_
 
 
@@ -44,6 +45,9 @@ class TestDestination(unittest.TestCase):
         self.assertEqual(parse('ssh://me@host:22'), {'hostname': 'host',
                                                      'username': 'me',
                                                      'port': 22})
+        self.assertRaises(InvalidDestination, parse, 'http://host')
+        self.assertRaises(InvalidDestination, parse, 'ssh://test@test@host')
+        self.assertRaises(InvalidDestination, parse, 'ssh://host:port')
 
     def test_string(self):
         string = tej.submission.destination_as_string

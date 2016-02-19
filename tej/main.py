@@ -69,7 +69,7 @@ def _status(args):
             sys.stdout.write("finished")
         elif status == RemoteQueue.JOB_RUNNING:
             sys.stdout.write("running")
-        else:
+        else:  # pragma: no cover
             raise RuntimeError("Got unknown job status %r" % status)
         if arg is not None:
             sys.stdout.write(' %s' % arg)
@@ -230,5 +230,5 @@ def main():
     sys.exit(0)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     main()

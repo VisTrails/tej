@@ -227,11 +227,7 @@ class RemoteQueue(object):
         reported if it is not one of the provided values.
         """
         if isinstance(destination, string_types):
-            try:
-                self.destination = parse_ssh_destination(destination)
-            except ValueError:
-                raise InvalidDestination("Can't parse SSH destination %s" %
-                                         destination)
+            self.destination = parse_ssh_destination(destination)
         else:
             if 'hostname' not in destination:
                 raise InvalidDestination("destination dictionary is missing "
@@ -309,7 +305,7 @@ class RemoteQueue(object):
             while True:
                 r, w, e = select.select([chan], [], [])
                 if chan not in r:
-                    continue
+                    continue  # pragma: no cover
                 recvd = False
                 while chan.recv_stderr_ready():
                     data = chan.recv_stderr(1024)
@@ -332,14 +328,14 @@ class RemoteQueue(object):
         """Calls a command through SSH.
         """
         ret, _ = self._call(cmd, False)
-        if ret != 0:
+        if ret != 0:  # pragma: no cover
             raise RemoteCommandFailure(command=cmd, ret=ret)
 
     def check_output(self, cmd):
         """Calls a command through SSH and returns its output.
         """
         ret, output = self._call(cmd, True)
-        if ret != 0:
+        if ret != 0:  # pragma: no cover
             raise RemoteCommandFailure(command=cmd, ret=ret)
         logger.debug("Output: %r", output)
         return output
@@ -391,9 +387,10 @@ class RemoteQueue(object):
             new = queue.parent / answer[8:]
             logger.debug("Found link to %s, recursing", new)
             return self._resolve_queue(new, depth + 1)
-        logger.debug("Server returned %r", answer)
-        raise RemoteCommandFailure(msg="Remote command failed in unexpected "
-                                       "way")
+        else:  # pragma: no cover
+            logger.debug("Server returned %r", answer)
+            raise RemoteCommandFailure(msg="Remote command failed in "
+                                           "unexpected way")
 
     def _get_queue(self):
         """Gets the actual location of the queue, or None.
