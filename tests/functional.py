@@ -3,11 +3,13 @@ from __future__ import unicode_literals
 import functools
 import logging
 import os
+import re
 from rpaths import Path
 import subprocess
 import sys
 import time
 
+from tej.submission import make_unique_name
 from tej.utils import unicode_
 
 
@@ -28,6 +30,11 @@ def print_arg_list(f):
                        for a in args))
         return f(args, **kwargs)
     return wrapper
+
+
+@print_arg_list
+def call(args, cwd=None):
+    return subprocess.call(args, cwd=cwd)
 
 
 @print_arg_list
@@ -141,7 +148,37 @@ def functional_tests():
     output = check_output(tej + ['list', destination])
     assert output == ('%s finished\n' % job_id).encode('ascii')
 
+    logging.info("Kill already finished job")
+    output = check_output(tej + ['kill', destination, '--id', job_id])
+    assert output == b''
+
     logging.info("Remove finished job")
+    check_call(tej + ['delete', destination, '--id', job_id])
+    output = check_output(tej + ['status', destination, '--id', job_id])
+    assert output == b'not found\n'
+
+    logging.info("Submit another job")
+    jobdir = Path.tempdir(prefix='tej-tests-')
+    try:
+        with jobdir.open('w', 'start.sh', newline='\n') as fp:
+            fp.write('#!/bin/sh\n'
+                     'sleep 20\n')
+        job_id = make_unique_name()
+        check_call(tej + ['submit', destination, '--id', job_id, jobdir.path])
+    finally:
+        jobdir.rmtree()
+    output = check_output(tej + ['status', destination, '--id', job_id])
+    assert output == b'running\n'
+
+    logging.info("Remove still running job")
+    assert call(tej + ['delete', destination, '--id', job_id]) != 0
+
+    logging.info("Kill running job")
+    output = check_output(tej + ['kill', destination, '--id', job_id])
+    output = check_output(tej + ['status', destination, '--id', job_id])
+    assert re.match(b'finished [0-9]+\n', output)
+
+    logging.info("Remove killed job")
     check_call(tej + ['delete', destination, '--id', job_id])
     output = check_output(tej + ['status', destination, '--id', job_id])
     assert output == b'not found\n'
