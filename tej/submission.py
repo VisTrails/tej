@@ -208,6 +208,8 @@ class RemoteQueue(object):
     JOB_DONE = 0
     JOB_RUNNING = 2
 
+    PROTOCOL_VERSION = 0, 2
+
     def __init__(self, destination, queue,
                  setup_runtime=None, need_runtime=None):
         """Creates a queue object, that represents a job queue on a server.
@@ -368,10 +370,16 @@ class RemoteQueue(object):
             return None, depth
         elif answer.startswith(b'dir\n'):
             version, runtime, path = answer[4:].split(b'\n', 2)
-            if version != b'0.2':
+            try:
+                version = tuple(int(e)
+                                for e in version.decode('ascii', 'ignore')
+                                                .split('.'))
+            except ValueError:
+                version = 0, 0
+            if version[:2] != self.PROTOCOL_VERSION:
                 raise QueueExists(
                     msg="Queue exists and is using incompatible protocol "
-                        "version %s" % version.decode('ascii', 'replace'))
+                        "version %s" % '.'.join('%s' % e for e in version))
             path = PosixPath(path)
             runtime = runtime.decode('ascii', 'replace')
             if self.need_runtime is not None:
