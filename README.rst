@@ -31,7 +31,7 @@ default options)::
 This takes a destination to SSH into, the location of tej's directory (there
 can be several on a server; by default, ``~/.tej`` is used), ``--make-link``
 creates a link so that future invocations will be redirected to
-``/scract/tejqueue``, and ``--runtime`` selects which runtime to setup on the
+``/scratch/tejqueue``, and ``--runtime`` selects which runtime to setup on the
 server (since tej is extensible, multiple scheduling/running subsystems can be
 used).
 
