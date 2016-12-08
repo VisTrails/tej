@@ -159,7 +159,9 @@ def escape_queue(s):
 
 _re_ssh = re.compile(r'^'
                      r'(?:ssh://)?'              # 'ssh://' prefix
-                     r'(?:([a-zA-Z0-9_.-]+)@)?'  # 'user@'
+                     r'(?:([a-zA-Z0-9_.-]+)'     # 'user@'
+                     r'(?::([^ @]+))?'           # ':password'
+                     r'@)?'                      # '@'
                      r'([a-zA-Z0-9_.-]+)'        # 'host'
                      r'(?::([0-9]+))?'           # ':port'
                      r'$')
@@ -171,12 +173,14 @@ def parse_ssh_destination(destination):
     match = _re_ssh.match(destination)
     if not match:
         raise InvalidDestination("Invalid destination: %s" % destination)
-    user, host, port = match.groups()
+    user, password, host, port = match.groups()
     info = {}
     if user:
         info['username'] = user
     else:
         info['username'] = getpass.getuser()
+    if password:
+        info['password'] = password
     if port:
         info['port'] = int(port)
     info['hostname'] = host
@@ -185,12 +189,17 @@ def parse_ssh_destination(destination):
 
 
 def destination_as_string(destination):
+    if 'password' in destination:
+        user = '%s:%s' % (destination['username'], destination['password'])
+    else:
+        user = destination['username']
+
     if destination.get('port', 22) != 22:
-        return 'ssh://%s@%s:%d' % (destination['username'],
+        return 'ssh://%s@%s:%d' % (user,
                                    destination['hostname'],
                                    destination['port'])
     else:
-        return 'ssh://%s@%s' % (destination['username'],
+        return 'ssh://%s@%s' % (user,
                                 destination['hostname'])
 
 

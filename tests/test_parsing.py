@@ -39,9 +39,17 @@ class TestDestination(unittest.TestCase):
         self.assertEqual(parse('me@host:12'), {'hostname': 'host',
                                                'username': 'me',
                                                'port': 12})
+        self.assertEqual(parse('me:p4$$w0rd@host:12'), {'hostname': 'host',
+                                                        'username': 'me',
+                                                        'password': 'p4$$w0rd',
+                                                        'port': 12})
         self.assertEqual(parse('ssh://me@host:12'), {'hostname': 'host',
                                                      'username': 'me',
                                                      'port': 12})
+        self.assertEqual(parse('ssh://me:p@host:12'), {'hostname': 'host',
+                                                       'username': 'me',
+                                                       'password': 'p',
+                                                       'port': 12})
         self.assertEqual(parse('ssh://me@host:22'), {'hostname': 'host',
                                                      'username': 'me',
                                                      'port': 22})
@@ -54,9 +62,15 @@ class TestDestination(unittest.TestCase):
         self.assertEqual(string({'hostname': '127.0.0.1', 'port': 12,
                                  'username': 'somebody'}),
                          'ssh://somebody@127.0.0.1:12')
+        self.assertEqual(string({'hostname': '127.0.0.1', 'port': 12,
+                                 'username': 'somebody', 'password': '$$'}),
+                         'ssh://somebody:$$@127.0.0.1:12')
         self.assertEqual(string({'hostname': '127.0.0.1', 'port': 22,
                                  'username': 'somebody'}),
                          'ssh://somebody@127.0.0.1')
+        self.assertEqual(string({'hostname': '127.0.0.1', 'port': 22,
+                                 'username': 'somebody', 'password': 'pass'}),
+                         'ssh://somebody:pass@127.0.0.1')
         self.assertEqual(string({'hostname': '127.0.0.1',
                                  'username': 'somebody'}),
                          'ssh://somebody@127.0.0.1')
