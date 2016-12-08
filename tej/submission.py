@@ -11,7 +11,7 @@ import scp
 import select
 import socket
 
-from tej.utils import string_types, iteritems, irange
+from tej.utils import unicode_, string_types, iteritems, irange
 
 
 __all__ = ['DEFAULT_TEJ_DIR',
@@ -140,6 +140,19 @@ def shell_escape(s):
                           .replace('$', '\\$'))
     else:
         return s
+
+
+def escape_queue(s):
+    """Escapes the path to a queue, e.g. preserves ~ at the begining.
+    """
+    if isinstance(s, PosixPath):
+        s = unicode_(s)
+    elif isinstance(s, bytes):
+        s = s.decode('utf-8')
+    if s.startswith('~/'):
+        return '~/' + shell_escape(s[2:])
+    else:
+        return shell_escape(s)
 
 
 _re_ssh = re.compile(r'^'
@@ -369,7 +382,7 @@ class RemoteQueue(object):
             'else '
             '    echo no; '
             'fi' % {
-                'queue': shell_escape(bytes(queue))})
+                'queue': escape_queue(queue)})
         if answer == b'no':
             if depth > 0:
                 logger.debug("Broken link at depth=%d", depth)
@@ -432,8 +445,8 @@ class RemoteQueue(object):
             logger.info("Only creating links")
             for link in links:
                 self.check_call('echo "tejdir:" %(queue)s > %(link)s' % {
-                                'queue': shell_escape(str(self.queue)),
-                                'link': shell_escape(link)})
+                                'queue': escape_queue(self.queue),
+                                'link': escape_queue(link)})
             return
 
         queue, depth = self._resolve_queue(self.queue)
@@ -445,7 +458,7 @@ class RemoteQueue(object):
                     logger.info("Replacing link to %s...", queue)
                 else:
                     logger.info("Replacing existing queue...")
-                self.check_call('rm -Rf %s' % shell_escape(str(self.queue)))
+                self.check_call('rm -Rf %s' % escape_queue(self.queue))
             else:
                 if queue is not None and depth > 0:
                     raise QueueExists("Queue already exists (links to %s)\n"
@@ -461,8 +474,8 @@ class RemoteQueue(object):
 
         for link in links:
             self.check_call('echo "tejdir:" %(queue)s > %(link)s' % {
-                'queue': shell_escape(str(queue)),
-                'link': shell_escape(link)})
+                'queue': escape_queue(queue),
+                'link': escape_queue(link)})
 
     def _setup(self):
         """Actually installs the runtime.
@@ -471,7 +484,7 @@ class RemoteQueue(object):
                     self.setup_runtime or "(auto)", self.queue)
 
         # Expands ~user in queue
-        output = self.check_output('echo %s' % shell_escape(str(self.queue)))
+        output = self.check_output('echo %s' % escape_queue(self.queue))
         queue = PosixPath(output.rstrip(b'\r\n'))
         logger.debug("Resolved to %s", queue)
 
