@@ -37,6 +37,7 @@ class InvalidDestination(Error):
     def __init__(self, msg="Invalid destination"):
         super(InvalidDestination, self).__init__(msg)
 
+
 # Backward compatibility
 InvalidDestionation = InvalidDestination
 
@@ -112,6 +113,8 @@ def unique_names():
     while True:
         letters = [rng.choice(characters) for i in irange(10)]
         yield ''.join(letters)
+
+
 unique_names = unique_names()
 
 
