@@ -311,6 +311,9 @@ class RemoteQueue(object):
                 chan.close()
             return self._ssh
 
+    def get_scp_client(self):
+        return scp.SCPClient(self.get_client().get_transport())
+
     def _call(self, cmd, get_output):
         """Calls a command through the SSH connection.
 
@@ -505,7 +508,7 @@ class RemoteQueue(object):
                              "match explicitely allowed runtimes" % runtime)
 
         # Uploads runtime
-        scp_client = scp.SCPClient(self.get_client().get_transport())
+        scp_client = self.get_scp_client()
         filename = pkg_resources.resource_filename('tej',
                                                    'remotes/%s' % runtime)
         scp_client.put(filename, str(queue), recursive=True)
@@ -551,7 +554,7 @@ class RemoteQueue(object):
 
         # Upload to directory
         try:
-            scp_client = scp.SCPClient(self.get_client().get_transport())
+            scp_client = self.get_scp_client()
             scp_client.put(str(Path(directory)),
                            str(target),
                            recursive=True)
@@ -623,7 +626,7 @@ class RemoteQueue(object):
         # Might raise JobNotFound
         status, target, result = self.status(job_id)
 
-        scp_client = scp.SCPClient(self.get_client().get_transport())
+        scp_client = self.get_scp_client()
         for filename in files:
             logger.info("Downloading %s", target / filename)
             if directory:
