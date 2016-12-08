@@ -109,7 +109,7 @@ def functional_tests():
                      '[ -f dir1/data1 ] || exit 1\n'
                      '[ "$(cat dir2/dir3/data2)" = data2 ] || exit 2\n'
                      'echo "stdout here"\n'
-                     'while ! [ -e ~/tej 2/job1done ]; do\n'
+                     'while ! [ -e ~/"tej 2/job1done" ]; do\n'
                      '    sleep 1\n'
                      'done\n'
                      'echo "job output" > job1results\n')
