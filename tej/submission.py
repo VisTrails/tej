@@ -132,7 +132,9 @@ safe_shell_chars = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 def shell_escape(s):
     r"""Given bl"a, returns "bl\\"a".
     """
-    if isinstance(s, bytes):
+    if isinstance(s, PosixPath):
+        s = unicode_(s)
+    elif isinstance(s, bytes):
         s = s.decode('utf-8')
     if not s or any(c not in safe_shell_chars for c in s):
         return '"%s"' % (s.replace('\\', '\\\\')
@@ -515,7 +517,7 @@ class RemoteQueue(object):
         logger.debug("Files uploaded")
 
         # Runs post-setup script
-        self.check_call('/bin/sh %s' % (queue / 'commands' / 'setup'))
+        self.check_call('/bin/sh %s' % shell_escape(queue / 'commands/setup'))
         logger.debug("Post-setup script done")
 
         return queue
@@ -542,7 +544,7 @@ class RemoteQueue(object):
 
         # Create directory
         ret, target = self._call('%s %s' % (
-                                 queue / 'commands' / 'new_job',
+                                 shell_escape(queue / 'commands/new_job'),
                                  job_id),
                                  True)
         if ret == 4:
@@ -567,9 +569,10 @@ class RemoteQueue(object):
         logger.debug("Files uploaded")
 
         # Submit job
-        self.check_call('%s %s %s %s' % (queue / 'commands' / 'submit',
-                                         job_id, target,
-                                         script))
+        self.check_call('%s %s %s %s' % (
+                        shell_escape(queue / 'commands/submit'),
+                        job_id, shell_escape(target),
+                        shell_escape(script)))
         logger.info("Submitted job %s", job_id)
         return job_id
 
@@ -582,8 +585,9 @@ class RemoteQueue(object):
         if queue is None:
             raise QueueDoesntExist
 
-        ret, output = self._call('%s %s' % (queue / 'commands' / 'status',
-                                            job_id),
+        ret, output = self._call('%s %s' % (
+                                 shell_escape(queue / 'commands/status'),
+                                 job_id),
                                  True)
         if ret == 0:
             directory, result = output.splitlines()
@@ -647,8 +651,9 @@ class RemoteQueue(object):
         if queue is None:
             raise QueueDoesntExist
 
-        ret, output = self._call('%s %s' % (queue / 'commands' / 'kill',
-                                            job_id),
+        ret, output = self._call('%s %s' % (
+                                 shell_escape(queue / 'commands/kill'),
+                                 job_id),
                                  False)
         if ret == 3:
             raise JobNotFound
@@ -665,8 +670,9 @@ class RemoteQueue(object):
         if queue is None:
             raise QueueDoesntExist
 
-        ret, output = self._call('%s %s' % (queue / 'commands' / 'delete',
-                                            job_id),
+        ret, output = self._call('%s %s' % (
+                                 shell_escape(queue / 'commands/delete'),
+                                 job_id),
                                  False)
         if ret == 3:
             raise JobNotFound
@@ -683,7 +689,8 @@ class RemoteQueue(object):
         if queue is None:
             raise QueueDoesntExist
 
-        output = self.check_output('%s' % (queue / 'commands' / 'list'))
+        output = self.check_output('%s' %
+                                   shell_escape(queue / 'commands/list'))
 
         job_id, info = None, None
         for line in output.splitlines():
