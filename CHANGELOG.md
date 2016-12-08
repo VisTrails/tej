@@ -1,8 +1,18 @@
 Changelog
 =========
 
-0.3 (???)
----------
+0.4 (2016-12-08)
+----------------
+
+Bugfixes:
+* Better quoting (useful if using spaces or unusual characters in paths)
+* Test runner no longer hides logging messages
+
+Features:
+* Add `queue.get_scp_client()`, useful to transfer files using the same connection
+
+0.3 (2016-02-20)
+----------------
 
 Bugfixes:
 * Fix typo: `InvalidDestionation` -> `InvalidDestination`
