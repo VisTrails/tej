@@ -25,8 +25,7 @@ if sys.version_info < (2, 7):
 setup(name='tej',
       version='0.3',
       packages=['tej'],
-      package_data={'tej': list_files('remotes/default', 'tej')},
-      include_package_data=True,
+      package_data={'tej': list_files('remotes', 'tej')},
       entry_points={
           'console_scripts': [
               'tej = tej.main:main']},
