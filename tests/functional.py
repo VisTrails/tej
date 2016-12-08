@@ -60,13 +60,13 @@ def functional_tests():
     else:
         tej = ['tej', '-v', '-v']
 
-    for path in ('~/.tej', '~/tej2'):
+    for path in ('~/.tej', '~/tej 2'):
         path = Path(path).expand_user()
         try:
             path.remove()
         except OSError:
             path.rmtree(ignore_errors=True)
-    Path('~/tej2').expand_user().mkdir()
+    Path('~/tej 2').expand_user().mkdir()
 
     logging.info("Creating default queue")
     check_call(tej + ['setup', destination])
@@ -75,24 +75,27 @@ def functional_tests():
 
     logging.info("Creating a queue with a link")
     check_call(tej + ['setup', destination,
-                      '--queue', '~/tej2/queue',
-                      '--make-link', '~/tej2/link'])
-    assert Path('~/tej2/queue').expand_user().is_dir()
-    with Path('~/tej2/link').expand_user().open('r') as fp:
-        assert fp.read() == 'tejdir: %s\n' % Path('~/tej2/queue').expand_user()
+                      '--queue', '~/tej 2/queue',
+                      '--make-link', '~/tej 2/link'])
+    assert Path('~/tej 2/queue').expand_user().is_dir()
+    with Path('~/tej 2/link').expand_user().open('r') as fp:
+        assert fp.read() == ('tejdir: %s\n' %
+                             Path('~/tej 2/queue').expand_user())
 
     logging.info("Adding links")
     check_call(tej + ['setup', destination, '--only-links',
-                      '--queue', '~/tej2/queue',
-                      '--make-link', '~/tej2/link2'])
-    with Path('~/tej2/link2').expand_user().open('r') as fp:
-        assert fp.read() == 'tejdir: %s\n' % Path('~/tej2/queue').expand_user()
+                      '--queue', '~/tej 2/queue',
+                      '--make-link', '~/tej 2/link2'])
+    with Path('~/tej 2/link2').expand_user().open('r') as fp:
+        assert fp.read() == ('tejdir: %s\n' %
+                             Path('~/tej 2/queue').expand_user())
     assert not Path('~/.tej').expand_user().exists()
     check_call(tej + ['setup', destination, '--only-links',
-                      '--queue', '~/tej2/queue',
+                      '--queue', '~/tej 2/queue',
                       '--make-default-link'])
     with Path('~/.tej').expand_user().open('r') as fp:
-        assert fp.read() == 'tejdir: %s\n' % Path('~/tej2/queue').expand_user()
+        assert fp.read() == ('tejdir: %s\n' %
+                             Path('~/tej 2/queue').expand_user())
 
     logging.info("Calling status for non-existent job")
     output = check_output(tej + ['status', destination, '--id', 'nonexistent'])
@@ -106,7 +109,7 @@ def functional_tests():
                      '[ -f dir1/data1 ] || exit 1\n'
                      '[ "$(cat dir2/dir3/data2)" = data2 ] || exit 2\n'
                      'echo "stdout here"\n'
-                     'while ! [ -e ~/tej2/job1done ]; do\n'
+                     'while ! [ -e ~/tej 2/job1done ]; do\n'
                      '    sleep 1\n'
                      'done\n'
                      'echo "job output" > job1results\n')
@@ -127,7 +130,7 @@ def functional_tests():
     assert output == b'running\n'
 
     logging.info("Finish job")
-    Path('~/tej2/job1done').expand_user().open('w').close()
+    Path('~/tej 2/job1done').expand_user().open('w').close()
     time.sleep(2)
 
     logging.info("Check status of finished job")
