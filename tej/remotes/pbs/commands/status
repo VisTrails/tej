@@ -24,7 +24,7 @@ set -e
 # Inputs
 job_id="$1"
 
-cd "$(dirname $0)/.."
+cd "$(dirname "$0")/.."
 
 (date; echo "status $@") >> tej.log
 
