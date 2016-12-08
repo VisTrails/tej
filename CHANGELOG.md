@@ -10,6 +10,7 @@ Bugfixes:
 
 Features:
 * Add `queue.get_scp_client()`, useful to transfer files using the same connection
+* Add optional password to destination string
 
 0.3 (2016-02-20)
 ----------------
