@@ -18,8 +18,6 @@ if top_level not in sys.path:
 sys.path.append(start_dir)
 
 
-from tej.main import setup_logging              # noqa
-
 from tests.functional import functional_tests   # noqa
 
 
@@ -34,7 +32,8 @@ class Program(unittest.TestProgram):
 
 
 if __name__ == '__main__':
-    setup_logging(999)
+    logging.basicConfig(level=logging.DEBUG,
+                        format="%(asctime)s TEST-%(levelname)s: %(message)s")
 
     parser = argparse.ArgumentParser(description="tej tests")
     parser.add_argument('--unittests', action='store_true',
