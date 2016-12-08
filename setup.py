@@ -23,7 +23,7 @@ req = ['paramiko', 'rpaths', 'scp']
 if sys.version_info < (2, 7):
     req.append('argparse')
 setup(name='tej',
-      version='0.3',
+      version='0.4',
       packages=['tej'],
       package_data={'tej': list_files('remotes', 'tej')},
       entry_points={
@@ -38,7 +38,8 @@ setup(name='tej',
       url='https://github.com/VisTrails/tej',
       long_description=description,
       license='BSD',
-      keywords=['tej', 'job', 'submission', 'queue', 'batch', 'ssh', 'server'],
+      keywords=['tej', 'job', 'submission', 'queue', 'batch', 'ssh', 'server',
+                'pbs', 'qsub'],
       classifiers=[
           'Development Status :: 4 - Beta',
           'Environment :: Console',
