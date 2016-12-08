@@ -48,12 +48,8 @@ if __name__ == '__main__':
     parser.add_argument('arg', nargs=argparse.REMAINDER)
     args = parser.parse_args()
 
-    default_map = {
-        (None, None): (True, True),
-        (None, True): (False, True),
-        (True, None): (True, False)}
-    unittests, functests = default_map.get((args.unittests, args.functests),
-                                           (args.unittests, args.functests))
+    unittests, functests = (lambda a: ({None: not any(a)}.get(x, x)
+                            for x in a))((args.unittests, args.functests))
 
     successful = True
     if unittests:
