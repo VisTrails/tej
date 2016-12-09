@@ -8,7 +8,7 @@
 # Started on the server, detached, by the submit script
 #
 # Arguments:
-#   1. script filename
+#   1. command or script filename
 #
 
 set -e
@@ -20,8 +20,10 @@ script="$1"
 
 
 # Starts program
-chmod +x "$script" 2>&1
-script="$(dirname "$script")/$(basename "$script")"
+if [ -f "$script" ]; then
+  chmod +x "$script" 2>&1
+  script="$(dirname "$script")/$(basename "$script")"
+fi
 "$script" >_stdout 2>_stderr </dev/null &
 pid=$!
 
