@@ -44,7 +44,7 @@ fi
 cd "$(dirname "$job_dir")"
 cat >tej_job.sh<<END
 #PBS -V
-#PBS -e localhost:\${PBS_O_WORKDIR}/stage/_stderr
+#PBS -o localhost:\${PBS_O_WORKDIR}/stage/_stdout
 #PBS -e localhost:\${PBS_O_WORKDIR}/stage/_stderr
 #PBS -l nodes=1
 #PBS -N $(basename "$(dirname "$job_dir")")
