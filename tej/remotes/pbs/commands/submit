@@ -59,13 +59,13 @@ read submitted_date <&3
 exec 3<&-
 
 cd "stage"
-if [ -f "$script" ]; then
-  chmod +x "$script"
+if [ -f "./$script" ]; then
+  chmod +x "./$script"
   script="./$script"
 fi
 started_date=$(date "+%s")
 (echo "started"; echo "\$pbs_id"; echo "\$submitted_date"; echo "\$started_date"; echo '') > ../status
-"$script" </dev/null && exitcode=0 || exitcode=\$?
+sh -c "$script" </dev/null && exitcode=0 || exitcode=\$?
 (echo "finished"; echo "\$exitcode"; echo "\$submitted_date"; echo "\$started_date"; date "+%s") > ../status
 exit 0
 END

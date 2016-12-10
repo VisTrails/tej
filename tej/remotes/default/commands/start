@@ -20,11 +20,11 @@ script="$1"
 
 
 # Starts program
-if [ -f "$script" ]; then
-  chmod +x "$script" 2>&1
-  script="$(dirname "$script")/$(basename "$script")"
+if [ -f "./$script" ]; then
+  chmod +x "./$script" 2>&1
+  script="./$script"
 fi
-"$script" >_stdout 2>_stderr </dev/null &
+sh -c "$script" >_stdout 2>_stderr </dev/null &
 pid=$!
 
 # Writes status file
