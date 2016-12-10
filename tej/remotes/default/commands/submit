@@ -10,7 +10,7 @@
 # Arguments:
 #   1. job ID
 #   2. job directory, obtained from new_job
-#   3. script path (relative to job)
+#   3. command or script path (relative to job)
 #
 
 set -e

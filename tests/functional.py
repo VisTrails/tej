@@ -188,3 +188,29 @@ def functional_tests():
     check_call(tej + ['delete', destination, '--id', job_id])
     output = check_output(tej + ['status', destination, '--id', job_id])
     assert output == b'not found\n'
+
+    jobdir = Path.tempdir(prefix='tej-tests-')
+    try:
+        logging.info("Start remote command job")
+        job_id = check_output(tej + ['submit', destination,
+                                     '--script', 'echo "hi"', jobdir.path])
+        job_id = job_id.rstrip().decode('ascii')
+    finally:
+        jobdir.rmtree()
+    time.sleep(2)
+
+    logging.info("Download remote command job output")
+    destdir = Path.tempdir(prefix='tej-tests-')
+    try:
+        check_call(tej + ['download', destination, '--id', job_id, '_stdout'],
+                   cwd=destdir.path)
+        with destdir.open('r', '_stdout') as fp:
+            assert fp.read() == 'hi\n'
+    finally:
+        destdir.rmtree()
+
+    logging.info("Remove finished job")
+    output = check_output(tej + ['delete', destination, '--id', job_id])
+    assert output == b''
+    output = check_output(tej + ['status', destination, '--id', job_id])
+    assert output == b'not found\n'
