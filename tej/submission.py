@@ -494,11 +494,8 @@ class RemoteQueue(object):
     def _setup(self):
         """Actually installs the runtime.
         """
-        logger.info("Installing runtime %s at %s",
-                    self.setup_runtime or "(auto)", self.queue)
-
         # Expands ~user in queue
-        output = self.check_output('echo %s' % escape_queue(self.queue))
+        output = self.check_output('echo %s' % escape_queue(self.queue))  # fix
         queue = PosixPath(output.rstrip(b'\r\n'))
         logger.debug("Resolved to %s", queue)
 
@@ -517,6 +514,11 @@ class RemoteQueue(object):
         if self.need_runtime is not None and runtime not in self.need_runtime:
             raise ValueError("About to setup runtime %s but that wouldn't "
                              "match explicitely allowed runtimes" % runtime)
+
+        logger.info("Installing runtime %s%s at %s",
+                    runtime,
+                    "" if self.setup_runtime else " (auto)",
+                    self.queue)
 
         # Uploads runtime
         scp_client = self.get_scp_client()
