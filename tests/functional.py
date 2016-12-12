@@ -75,8 +75,8 @@ def functional_tests():
 
     logging.info("Creating a queue with a link")
     check_call(tej + ['setup', destination,
-                      '--queue', '~/tej 2/queue',
-                      '--make-link', '~/tej 2/link'])
+                      '--queue', 'tej 2/queue',
+                      '--make-link', 'tej 2/link'])
     assert Path('~/tej 2/queue').expand_user().is_dir()
     with Path('~/tej 2/link').expand_user().open('r') as fp:
         assert fp.read() == ('tejdir: %s\n' %
