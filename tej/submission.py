@@ -297,8 +297,8 @@ class RemoteQueue(object):
         self._ssh.load_system_host_keys()
         self._ssh.set_missing_host_key_policy(paramiko.RejectPolicy())
         logger.debug("Connecting with %s",
-                     ', '.join('%s=%r' % i
-                               for i in iteritems(self.destination)))
+                     ', '.join('%s=%r' % (k, v if k != "password" else "***")
+                               for k, v in iteritems(self.destination)))
         self._ssh.connect(**self.destination)
         logger.debug("Connected to %s", self.destination['hostname'])
 
