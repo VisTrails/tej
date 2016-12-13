@@ -42,4 +42,4 @@ fi
 
 # Starts process
 cd "$job_dir"
-nohup "$(dirname "$0")/start" "$script" > /dev/null 2>&1 < /dev/null &
+nohup "../../../commands/start" "$script" > /dev/null 2>&1 < /dev/null &

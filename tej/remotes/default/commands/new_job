@@ -40,5 +40,5 @@ fi
 
 # Prints out the name of the new directory, where the job is to be uploaded
 cd "$job_root"
-echo "$(pwd)/stage" >> "$(dirname "$0")/../tej.log"
+echo "$(pwd)/stage" >> "../../tej.log"
 echo "$(pwd)/stage"
