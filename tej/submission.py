@@ -495,9 +495,17 @@ class RemoteQueue(object):
         """Actually installs the runtime.
         """
         # Expands ~user in queue
-        output = self.check_output('echo %s' % escape_queue(self.queue))  # fix
-        queue = PosixPath(output.rstrip(b'\r\n'))
-        logger.debug("Resolved to %s", queue)
+        if self.queue.path[0:1] == b'/':
+            queue = self.queue
+        else:
+            if self.queue.path[0:1] == b'~':
+                output = self.check_output('echo %s' %
+                                           escape_queue(self.queue))
+                queue = PosixPath(output.rstrip(b'\r\n'))
+            else:
+                output = self.check_output('pwd')
+                queue = PosixPath(output.rstrip(b'\r\n')) / self.queue
+            logger.debug("Resolved to %s", queue)
 
         # Select runtime
         if not self.setup_runtime:
