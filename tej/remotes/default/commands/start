@@ -33,7 +33,7 @@ started_date=$(date +%s)
 
 wait $pid && exitcode=0 || exitcode=$?
 
-(date; echo "finished $@"; echo $exitcode) >> "$(dirname "$0")/../tej.log"
+(date; echo "finished $@"; echo $exitcode) >> "../../../tej.log"
 
 # Updates status file
 (echo "finished"; echo $exitcode; echo "$started_date"; date "+%s") > ../status
