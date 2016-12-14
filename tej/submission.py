@@ -290,17 +290,24 @@ class RemoteQueue(object):
     def destination_string(self):
         return destination_as_string(self.destination)
 
+    def _ssh_client(self):
+        """Gets an SSH client to connect with.
+        """
+        ssh = paramiko.SSHClient()
+        ssh.load_system_host_keys()
+        ssh.set_missing_host_key_policy(paramiko.RejectPolicy())
+        return ssh
+
     def _connect(self):
         """Connects via SSH.
         """
-        self._ssh = paramiko.SSHClient()
-        self._ssh.load_system_host_keys()
-        self._ssh.set_missing_host_key_policy(paramiko.RejectPolicy())
+        ssh = self._ssh_client()
         logger.debug("Connecting with %s",
                      ', '.join('%s=%r' % (k, v if k != "password" else "***")
                                for k, v in iteritems(self.destination)))
-        self._ssh.connect(**self.destination)
+        ssh.connect(**self.destination)
         logger.debug("Connected to %s", self.destination['hostname'])
+        self._ssh = ssh
 
     def get_client(self):
         """Gets the SSH client.
