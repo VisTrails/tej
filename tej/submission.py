@@ -97,6 +97,8 @@ class RemoteCommandFailure(Exception):
         if msg is None:
             msg = "Command %r failed with status %d" % (command, ret)
         super(RemoteCommandFailure, self).__init__(msg)
+        self.command = command
+        self.ret = ret
 
 
 logger = logging.getLogger('tej')
