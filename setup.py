@@ -23,7 +23,7 @@ req = ['paramiko', 'rpaths', 'scp']
 if sys.version_info < (2, 7):
     req.append('argparse')
 setup(name='tej',
-      version='0.4',
+      version='0.5',
       packages=['tej'],
       package_data={'tej': list_files('remotes', 'tej')},
       entry_points={

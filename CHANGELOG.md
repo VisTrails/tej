@@ -1,8 +1,8 @@
 Changelog
 =========
 
-0.5 (???)
----------
+0.5 (2016-12-23)
+----------------
 
 Behavior change:
 * Logging on tej.server now happens with level INFO (was WARNING).
