@@ -239,8 +239,10 @@ def check_jobid(job_id):
 
 
 class RemoteQueue(object):
-    JOB_DONE = 0
-    JOB_RUNNING = 2
+    JOB_DONE = 'finished'
+    JOB_RUNNING = 'running'
+    JOB_INCOMPLETE = 'incomplete'
+    JOB_CREATED = 'created'
 
     PROTOCOL_VERSION = 0, 2
 
