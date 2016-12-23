@@ -225,7 +225,7 @@ class ServerLogger(object):
             self.data = []
 
     def message(self, data):
-        self.logger.warning(data)
+        self.logger.info(data)
 
 
 JOB_ID_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
