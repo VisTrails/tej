@@ -1,6 +1,22 @@
 Changelog
 =========
 
+0.5 (???)
+---------
+
+Behavior change:
+* Logging on tej.server now happens with level INFO (was WARNING).
+
+Bugfixes:
+* stdout is now recorded correctly on PBS
+* Fix escaping, making tej work when the queue is a relative path
+* Don't log the password
+
+Features:
+* `submit()`'s `script` parameter now accepts a full command in addition to a filename
+* Expose `_ssh_client()`, allowing children classes to override the SSHClient settings
+* Make status constants strings, which means they can be directly compared with `info['status']` from `list()`
+
 0.4 (2016-12-08)
 ----------------
 
