@@ -292,7 +292,7 @@ class RemoteQueue(object):
         logger.debug("Output: %r", output)
         return output
 
-    def _resolve_queue(self, queue, depth=0):
+    def _resolve_queue(self, queue, depth=0, links=None):
         """Finds the location of tej's queue directory on the server.
 
         The `queue` set when constructing this `RemoteQueue` might be relative
@@ -344,6 +344,8 @@ class RemoteQueue(object):
         elif answer.startswith(b'tejdir: '):
             new = queue.parent / answer[8:]
             logger.debug("Found link to %s, recursing", new)
+            if links is not None:
+                links.append(queue)
             return self._resolve_queue(new, depth + 1)
         else:  # pragma: no cover
             logger.debug("Server returned %r", answer)
@@ -354,7 +356,8 @@ class RemoteQueue(object):
         """Gets the actual location of the queue, or None.
         """
         if self._queue is None:
-            queue, depth = self._resolve_queue(self.queue)
+            self._links = []
+            queue, depth = self._resolve_queue(self.queue, links=self._links)
             if queue is None and depth > 0:
                 raise QueueLinkBroken
             self._queue = queue
@@ -641,3 +644,27 @@ class RemoteQueue(object):
                 info = {}
         if job_id is not None:
             yield job_id, info
+
+    def cleanup(self, kill=False):
+        queue = self._get_queue()
+
+        if queue is not None:
+            # Kill jobs
+            for job_id, info in self.list():
+                if info['status'] == 'running':
+                    if not kill:
+                        raise JobStillRunning("Can't cleanup, some jobs are "
+                                              "still running")
+                    else:
+                        logger.info("Killing running job %s", job_id)
+                        self.kill(job_id)
+
+            # Remove queue
+            logger.info("Removing queue at %s", queue)
+            self.check_call('rm -rf -- %s' % shell_escape(queue))
+
+        # Remove links
+        for link in self._links:
+            self.check_call('rm -rf -- %s' % shell_escape(link))
+
+        return True
