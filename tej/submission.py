@@ -182,6 +182,7 @@ class RemoteQueue(object):
         else:
             self.need_runtime = None
         self.queue = PosixPath(queue)
+        self._queue = None
         self._ssh = None
         self._connect()
 
@@ -346,17 +347,18 @@ class RemoteQueue(object):
             return self._resolve_queue(new, depth + 1)
         else:  # pragma: no cover
             logger.debug("Server returned %r", answer)
-            raise RemoteCommandFailure(msg="Remote command failed in "
-                                           "unexpected way")
+            raise RemoteCommandFailure(msg="Queue resolution command failed "
+                                           "in unexpected way")
 
     def _get_queue(self):
         """Gets the actual location of the queue, or None.
         """
-        queue, depth = self._resolve_queue(self.queue)
-        if queue is None and depth > 0:
-            raise QueueLinkBroken
-        logger.debug("get_queue = %s", queue)
-        return queue
+        if self._queue is None:
+            queue, depth = self._resolve_queue(self.queue)
+            if queue is None and depth > 0:
+                raise QueueLinkBroken
+            self._queue = queue
+        return self._queue
 
     def setup(self, links=None, force=False, only_links=False):
         """Installs the runtime at the target location.
@@ -453,6 +455,7 @@ class RemoteQueue(object):
         self.check_call('/bin/sh %s' % shell_escape(queue / 'commands/setup'))
         logger.debug("Post-setup script done")
 
+        self._queue = queue
         return queue
 
     def submit(self, job_id, directory, script=None):
