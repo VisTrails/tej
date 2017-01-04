@@ -4,8 +4,8 @@ import getpass
 import unittest
 
 import tej.submission
-from tej.submission import InvalidDestination
-from tej.utils import irange, unicode_
+from tej.errors import InvalidDestination
+from tej.utils import irange, unicode_, shell_escape
 
 
 class TestUtils(unittest.TestCase):
@@ -16,7 +16,6 @@ class TestUtils(unittest.TestCase):
                             for n in names))
 
     def test_shell_escape(self):
-        shell_escape = tej.submission.shell_escape
         self.assertEqual(shell_escape("test"), "test")
         self.assertEqual(shell_escape("hello world"), '"hello world"')
         self.assertEqual(shell_escape('some"thing'), '"some\\"thing"')

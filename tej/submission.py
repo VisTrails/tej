@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, unicode_literals
 
 import getpass
 import logging
@@ -11,13 +11,13 @@ import scp
 import select
 import socket
 
-from tej.utils import unicode_, string_types, iteritems, irange
+from tej.errors import InvalidDestination, QueueDoesntExist, \
+    QueueLinkBroken, QueueExists, JobAlreadyExists, JobNotFound, \
+    JobStillRunning, RemoteCommandFailure
+from tej.utils import unicode_, string_types, iteritems, irange, shell_escape
 
 
 __all__ = ['DEFAULT_TEJ_DIR',
-           'Error', 'InvalidDestination', 'QueueDoesntExist',
-           'QueueLinkBroken', 'QueueExists', 'JobAlreadyExists', 'JobNotFound',
-           'JobStillRunning', 'RemoteCommandFailure',
            'parse_ssh_destination', 'destination_as_string',
            'ServerLogger', 'RemoteQueue']
 
@@ -25,86 +25,10 @@ __all__ = ['DEFAULT_TEJ_DIR',
 DEFAULT_TEJ_DIR = '~/.tej'
 
 
-class Error(Exception):
-    """Base class for exceptions.
-    """
-
-
-class InvalidDestination(Error):
-    """Invalid SSH destination.
-    """
-    def __init__(self, msg="Invalid destination"):
-        super(InvalidDestination, self).__init__(msg)
-
-
-# Backward compatibility
-InvalidDestionation = InvalidDestination
-
-
-class QueueDoesntExist(Error):
-    """Queue doesn't exist on the server.
-
-    `submit` and `setup` will create a queue on the server, but other commands
-    like `status` and `kill` expect it to be there.
-    """
-    def __init__(self, msg="Queue doesn't exist on the server"):
-        super(QueueDoesntExist, self).__init__(msg)
-
-
-class QueueLinkBroken(QueueDoesntExist):
-    """The chain of links is broken.
-
-    There is a link file on the server that doesn't point to anything.
-    """
-    def __init__(self, msg="Queue link chain is broken"):
-        super(QueueLinkBroken, self).__init__(msg)
-
-
-class QueueExists(Error):
-    """The queue whose creation was requested already exists.
-
-    A `force` argument (``--force``) is provided to replace it anyway.
-    """
-    def __init__(self, msg="Queue already exists"):
-        super(QueueExists, self).__init__(msg)
-
-
-class JobAlreadyExists(Error):
-    """A job with this name already exists on the server; submission failed.
-    """
-    def __init__(self, msg="Job already exists"):
-        super(JobAlreadyExists, self).__init__(msg)
-
-
-class JobNotFound(Error):
-    """A job with this name wasn't found on the server.
-    """
-    def __init__(self, msg="Job not found"):
-        super(JobNotFound, self).__init__(msg)
-
-
-class JobStillRunning(Error):
-    """An operation failed because the target job is still running.
-    """
-    def __init__(self, msg="Job is still running"):
-        super(JobStillRunning, self).__init__(msg)
-
-
-class RemoteCommandFailure(Exception):
-    """A failure that happened on the server.
-    """
-    def __init__(self, msg=None, command=None, ret=None):
-        if msg is None:
-            msg = "Command %r failed with status %d" % (command, ret)
-        super(RemoteCommandFailure, self).__init__(msg)
-        self.command = command
-        self.ret = ret
-
-
 logger = logging.getLogger('tej')
 
 
-def unique_names():
+def _unique_names():
     """Generates unique sequences of bytes.
     """
     characters = ("abcdefghijklmnopqrstuvwxyz"
@@ -116,34 +40,13 @@ def unique_names():
         yield ''.join(letters)
 
 
-unique_names = unique_names()
+_unique_names = _unique_names()
 
 
 def make_unique_name():
     """Makes a unique (random) string.
     """
-    return next(unique_names)
-
-
-safe_shell_chars = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                       "abcdefghijklmnopqrstuvwxyz"
-                       "0123456789"
-                       "-+=/:.,%_")
-
-
-def shell_escape(s):
-    r"""Given bl"a, returns "bl\\"a".
-    """
-    if isinstance(s, PosixPath):
-        s = unicode_(s)
-    elif isinstance(s, bytes):
-        s = s.decode('utf-8')
-    if not s or any(c not in safe_shell_chars for c in s):
-        return '"%s"' % (s.replace('\\', '\\\\')
-                          .replace('"', '\\"')
-                          .replace('$', '\\$'))
-    else:
-        return s
+    return next(_unique_names)
 
 
 def escape_queue(s):

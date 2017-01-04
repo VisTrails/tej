@@ -11,7 +11,8 @@ import logging
 import sys
 
 from tej import __version__ as tej_version
-from tej.submission import DEFAULT_TEJ_DIR, Error, JobNotFound, RemoteQueue
+from tej.errors import Error, JobNotFound
+from tej.submission import DEFAULT_TEJ_DIR, RemoteQueue
 
 
 logger = logging.getLogger('tej')
