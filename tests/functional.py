@@ -9,7 +9,7 @@ import subprocess
 import sys
 import time
 
-from tej.submission import make_unique_name
+from tej.submission import RemoteQueue, make_unique_name
 from tej.utils import unicode_
 
 
@@ -71,7 +71,8 @@ def functional_tests():
     logging.info("Creating default queue")
     check_call(tej + ['setup', destination])
     assert Path('~/.tej').expand_user().is_dir()
-    Path('~/.tej').expand_user().rmtree()
+    RemoteQueue(destination, '~/.tej').cleanup()
+    assert not Path('~/.tej').expand_user().exists()
 
     logging.info("Creating a queue with a link")
     check_call(tej + ['setup', destination,
@@ -214,3 +215,7 @@ def functional_tests():
     assert output == b''
     output = check_output(tej + ['status', destination, '--id', job_id])
     assert output == b'not found\n'
+
+    RemoteQueue(destination, 'tej 2/link').cleanup()
+    assert not Path('~/tej 2/link').expand_user().exists()
+    assert not Path('~/tej 2/queue').expand_user().exists()
