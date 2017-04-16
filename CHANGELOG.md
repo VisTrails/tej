@@ -1,6 +1,13 @@
 Changelog
 =========
 
+0.6 (2017-04-15)
+----------------
+
+Features:
+* Cache resolved queue location
+* Add cleanup function, to remove the queue and links
+
 0.5 (2016-12-23)
 ----------------
 
