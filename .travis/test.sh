@@ -16,6 +16,6 @@ in
         codecov
     ;;
     flake8)
-        flake8 --ignore=W504,E731 tej tests
+        flake8 --ignore=W504,E731 .
     ;;
 esac

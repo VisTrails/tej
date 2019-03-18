@@ -20,11 +20,11 @@ if PY3:
     itervalues = dict.values
     listvalues = lambda d: list(d.values())
 else:
-    unicode_ = unicode
-    string_types = (str, unicode)
+    unicode_ = unicode  # noqa: F821
+    string_types = (str, unicode)  # noqa: F821
     import itertools
     izip = itertools.izip
-    irange = xrange
+    irange = xrange   # noqa: F821
     iteritems = dict.iteritems
     itervalues = dict.itervalues
     listvalues = dict.values

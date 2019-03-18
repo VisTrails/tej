@@ -502,7 +502,7 @@ class RemoteQueue(object):
         except BaseException as e:
             try:
                 self.delete(job_id)
-            except:
+            except BaseException:
                 raise e
             raise
         logger.debug("Files uploaded")
