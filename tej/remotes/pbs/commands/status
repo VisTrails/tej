@@ -76,7 +76,7 @@ elif [ "$status" = finished ]; then
     pwd
     echo "$arg"
     exit 0
-elsee  # [ "$status" = incomplete -o "$status" = created ]
+else  # [ "$status" = incomplete -o "$status" = created ]
     echo "Job is incomplete (created $started_date)" >> tej.log
     echo "Job is incomplete (submission aborted?)" >&2
     if [ -n "$started_date" ] && formatted="$(date "--date=@$started_date" 2>/dev/null)"; then

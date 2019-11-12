@@ -50,7 +50,7 @@ def make_unique_name():
 
 
 def escape_queue(s):
-    """Escapes the path to a queue, e.g. preserves ~ at the begining.
+    """Escapes the path to a queue, e.g. preserves ~ at the beginning.
     """
     if isinstance(s, PosixPath):
         s = unicode_(s)
@@ -440,7 +440,7 @@ class RemoteQueue(object):
 
         if self.need_runtime is not None and runtime not in self.need_runtime:
             raise ValueError("About to setup runtime %s but that wouldn't "
-                             "match explicitely allowed runtimes" % runtime)
+                             "match explicitly allowed runtimes" % runtime)
 
         logger.info("Installing runtime %s%s at %s",
                     runtime,
