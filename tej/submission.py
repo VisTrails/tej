@@ -141,12 +141,61 @@ def check_jobid(job_id):
         raise ValueError("Invalid job identifier")
 
 
-class RemoteQueue(object):
+class Queue(object):
     JOB_DONE = 'finished'
     JOB_RUNNING = 'running'
     JOB_INCOMPLETE = 'incomplete'
     JOB_CREATED = 'created'
 
+    def setup(self, links=None, force=False, only_links=False):
+        """Installs the runtime at the target location.
+
+        This will not replace an existing installation, unless `force` is True.
+
+        After installation, creates links to this installation at the specified
+        locations.
+        """
+
+    def submit(self, job_id, directory, script=None):
+        """Submits a job to the queue.
+
+        If the runtime is not there, it will be installed. If it is a broken
+        chain of links, error.
+        """
+        raise NotImplementedError
+
+    def status(self, job_id):
+        """Gets the status of a previously-submitted job.
+        """
+        raise NotImplementedError
+
+    def download(self, job_id, files, **kwargs):
+        """Downloads files from server.
+        """
+        raise NotImplementedError
+
+    def kill(self, job_id):
+        """Kills a job on the server.
+        """
+        raise NotImplementedError
+
+    def delete(self, job_id):
+        """Deletes a job from the server.
+        """
+        raise NotImplementedError
+
+    def list(self):
+        """Lists the jobs on the server.
+        """
+        raise NotImplementedError
+
+    def cleanup(self, kill=False):
+        """Remove the queue and all jobs, optionally killing the running ones.
+        """
+        raise NotImplementedError
+
+
+class RemoteQueue(Queue):
     PROTOCOL_VERSION = 0, 2
 
     def __init__(self, destination, queue,
