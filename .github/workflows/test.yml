@@ -12,7 +12,7 @@ jobs:
         os: [ubuntu-latest]
         mode: [tests]
         python:
-        - "3.4"
+        - "3.5"
         - "3.8"
         include:
         - os: ubuntu-latest
