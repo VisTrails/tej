@@ -1,0 +1,64 @@
+name: Test
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        mode: [tests]
+        python:
+        - "3.4"
+        - "3.8"
+        include:
+        - os: ubuntu-latest
+          mode: coverage
+          python: "2.7"
+    runs-on: ${{ matrix.os }}
+    env:
+      TEST_MODE: ${{ matrix.mode }}
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python }}
+    - name: Install dependencies
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -qq openssh-client openssh-server
+        pip install -U pip setuptools
+        if [ "$TEST_MODE" = coverage ]; then
+            pip install coverage codecov
+            pip install -e .
+        else
+            pip install .
+        fi
+
+        .ci/setup_ssh.sh
+    - name: Test
+      run: |
+        export TEJ_DESTINATION="ssh://127.0.0.1:10022"
+
+        if [ "$TEST_MODE" = coverage ]; then
+            export COVER="coverage run -p --source=tej,tests --branch"
+            coverage run -p --source=tej,tests --branch tests/__main__.py
+            coverage combine
+            codecov
+        else
+            python tests
+        fi
+  check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v1
+      with:
+        python-version: "3.8"
+    - name: Install dependencies
+      run: pip install flake8
+    - name: Test
+      run: flake8 --ignore=W504,E731
